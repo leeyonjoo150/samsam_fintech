@@ -19,7 +19,7 @@ class StockHoldingForm(forms.ModelForm):
         labels = {
             'ticker_code': '종목 코드',
             'pur_amount': '매수가',
-            'share': '보유 수량',
+            'share': '매수 수량',
             'currency': '통화',
         }
         widgets = {
@@ -90,3 +90,30 @@ class StockAccountForm(forms.ModelForm):
             'st_acc_num': forms.TextInput(attrs={'placeholder': '예: 1234567890'}),
             'st_company': forms.TextInput(attrs={'placeholder': '예: 삼성증권'}),
         }
+
+class SearchForm(forms.Form):
+    query = forms.CharField(
+        label='검색어',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': '예: AAPL, BTC/KRW, US5Y, 환율, 금', 'class': 'form-control'})
+    )
+    start_date = forms.DateField(
+        label='시작일',
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    end_date = forms.DateField(
+        label='종료일',
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 폼이 GET 요청으로 비어있을 때만 기본값을 설정
+        if not self.data:
+            today = date.today()
+            five_days_ago = today - timedelta(days=5)
+            self.initial['end_date'] = today
+            self.initial['start_date'] = five_days_ago

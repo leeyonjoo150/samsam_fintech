@@ -1,13 +1,14 @@
 import FinanceDataReader as fdr
 from django.shortcuts import render,redirect
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from .forms import StockHoldingForm
-from .forms import StockAccountForm
+from .forms import StockHoldingForm, StockAccountForm, SearchForm
 from manage_account.models import StockContent, StockAccount
 from django.db.models import Sum, F
 from django.contrib import messages
 from django.db import IntegrityError
 import math
+import random
 
 @login_required
 def my_stock_holdings(request):
@@ -139,3 +140,94 @@ def add_stock_account(request):
         'form': form,
     }
     return render(request, 'financial_data/add_stock_account.html', context)
+
+def search_data(request):
+    """
+    사용자 입력에 따라 금융 데이터를 검색하고 결과를 반환하는 뷰
+    """
+    form = SearchForm(request.GET or None)
+    results = None
+    query = None
+    
+    # 검색창 위에 보여줄 주요 지표 및 환율 데이터
+    market_data_tickers = ['KS11', 'IXIC', 'US10YT', 'USD/KRW', 'EUR/KRW']
+    market_data = []
+
+    for ticker in market_data_tickers:
+        try:
+            df = fdr.DataReader(ticker)
+            if not df.empty and 'Close' in df.columns:
+                latest_price = df.iloc[-1]['Close']
+                market_data.append({
+                    'name': ticker,
+                    'price': f'{latest_price:,.2f}'
+                })
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+            continue
+
+    if form.is_valid():
+        query = form.cleaned_data.get('query')
+        start_date = form.cleaned_data.get('start_date')
+        end_date = form.cleaned_data.get('end_date')
+
+        if query:
+            try:
+                # 시작일과 종료일이 유효하면 해당 기간으로 검색, 아니면 최근 5일만 검색
+                if start_date and end_date:
+                    df = fdr.DataReader(query, start=start_date, end=end_date)
+                else:
+                    df = fdr.DataReader(query)
+                    df = df.tail(5)
+
+                # 검색 결과를 날짜 기준으로 내림차순 정렬
+                df = df.sort_index(ascending=False)
+
+                results = df.to_html(classes='table table-striped table-hover', border=0)
+            except Exception as e:
+                messages.error(request, f"'{query}'에 대한 데이터를 찾을 수 없습니다. 올바른 검색어를 입력해주세요.")
+                print(f"Error fetching data for {query}: {e}")
+
+    context = {
+        'form': form,
+        'results': results,
+        'query': query,
+        'market_data': market_data,
+    }
+    return render(request, 'financial_data/search.html', context)
+
+
+# GeoGuessr 게임 뷰
+def geoguessr_game(request):
+    # 게임에 사용할 장소 목록 (예시)
+    locations = [
+        {
+            'name': '멋쟁이 사자처럼',
+            'lat': 37.571026,
+            'lng': 126.978920,
+            'description': '종로에 위치한 멋쟁이 사자처럼 사무실입니다. 이곳에서 수많은 개발자들이 탄생했죠!',
+            'image_url': 'https://i.namu.wiki/i/_P6imFJ5yHttguV3fNdLT5hY3QKeIxpwnY682vpxQcwqwvnsTTXLB1zOVrAVw6AHPZcpS66wmi-_le7tSDXbyg.webp',
+        },
+        {
+            'name': '멋쟁이 사자처럼 세렝게티',
+            'lat': 37.502402,
+            'lng': 127.043464,
+            'description': '강남에 위치한 멋쟁이 사자처럼 세렝게티 사무실입니다. 코딩 열기로 가득한 곳입니다!',
+            'image_url': 'https://i.namu.wiki/i/_P6imFJ5yHttguV3fNdLT5hY3QKeIxpwnY682vpxQcwqwvnsTTXLB1zOVrAVw6AHPZcpS66wmi-_le7tSDXbyg.webp',
+        },
+        {
+            'name': '멋쟁이 사자처럼 나이로비',
+            'lat': 37.506703,
+            'lng': 127.055722,
+            'description': '멋쟁이 사자처럼의 또 다른 보금자리 나이로비 사무실입니다. 다양한 프로젝트가 탄생하는 곳입니다!',
+            'image_url': 'https://i.namu.wiki/i/_P6imFJ5yHttguV3fNdLT5hY3QKeIxpwnY682vpxQcwqwvnsTTXLB1zOVrAVw6AHPZcpS66wmi-_le7tSDXbyg.webp',
+        },
+    ]
+    # 랜덤으로 장소를 하나 선택합니다.
+    random_location = random.choice(locations)
+
+    context = {
+        'api_key': settings.GOOGLE_MAPS_API_KEY,
+        'start_location': random_location,
+    }
+    return render(request, 'financial_data/geoguessr_game.html', context)
