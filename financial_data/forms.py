@@ -24,7 +24,7 @@ class StockHoldingForm(forms.ModelForm):
         }
         widgets = {
             'ticker_code': forms.TextInput(attrs={'placeholder': '예: AAPL'}),
-            'pur_amount': forms.NumberInput(attrs={'placeholder': '예: 180 (단위: 원)'}),
+            'pur_amount': forms.NumberInput(attrs={'placeholder': '예: 180 '}),
             'share': forms.NumberInput(attrs={'placeholder': '예: 5 (단위: 주)'}),
             'currency': forms.Select(choices=StockContent.CURRENCY_CHOICES),
         }
