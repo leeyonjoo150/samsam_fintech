@@ -3,6 +3,7 @@ from django import forms
 from manage_account.models import StockContent, StockAccount
 import FinanceDataReader as fdr
 import math
+from datetime import date, timedelta
 
 
 class StockHoldingForm(forms.ModelForm):
