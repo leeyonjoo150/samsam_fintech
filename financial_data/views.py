@@ -190,21 +190,72 @@ def search_data(request):
         end_date = form.cleaned_data.get('end_date')
 
         if query:
-            try:
-                # 시작일과 종료일이 유효하면 해당 기간으로 검색, 아니면 최근 5일만 검색
-                if start_date and end_date:
-                    df = fdr.DataReader(query, start=start_date, end=end_date)
+            original_query = query
+            found_ticker = None
+            
+            # 한글-영문 회사 이름 매핑
+            name_to_ticker_mapping = {
+                '삼성전자': '005930',
+                '애플': 'AAPL',
+                '테슬라': 'TSLA',
+                '아마존': 'AMZN',
+                '엔비디아': 'NVDA',
+            }
+            
+            # 매핑 딕셔너리에서 먼저 검색 (소문자로 변환하여 검색)
+            for name, ticker in name_to_ticker_mapping.items():
+                if query.lower() == name.lower():
+                    found_ticker = ticker
+                    break
+            
+            # 매핑에 없으면 기존 로직대로 검색
+            if not found_ticker:
+                # 검색할 거래소 목록
+                exchange_list = ['KRX', 'NASDAQ', 'NYSE', 'AMEX']
+                
+                # 사용자가 입력한 검색어가 암호화폐 거래쌍인지 확인
+                if '/' in query:
+                    found_ticker = query.upper()
+                # 사용자가 입력한 검색어가 주식 종목 코드인지 확인
+                elif query.isdigit() or (query.isupper() and len(query) < 5):
+                    found_ticker = query.upper()
                 else:
-                    df = fdr.DataReader(query)
-                    df = df.tail(5)
+                    # 종목 코드가 아니면 회사 이름으로 검색
+                    for exchange in exchange_list:
+                        try:
+                            stock_list = fdr.StockListing(exchange)
+                            # 대소문자 구분 없이 회사 이름 검색
+                            matched_stock = stock_list[stock_list['Name'].str.lower() == query.lower()]
+                            if not matched_stock.empty:
+                                try:
+                                    found_ticker = matched_stock.iloc[0]['Symbol']
+                                except KeyError:
+                                    found_ticker = matched_stock.iloc[0]['Code']
+                                break  # 종목을 찾았으면 루프 종료
+                        except Exception as e:
+                            print(f"Error fetching stock list for {exchange}: {e}")
+                            continue
+            
+            if found_ticker:
+                query = found_ticker
+                try:
+                    # 시작일과 종료일이 유효하면 해당 기간으로 검색, 아니면 최근 5일만 검색
+                    if start_date and end_date:
+                        df = fdr.DataReader(query, start=start_date, end=end_date)
+                    else:
+                        df = fdr.DataReader(query)
+                        df = df.tail(5)
 
-                # 검색 결과를 날짜 기준으로 내림차순 정렬
-                df = df.sort_index(ascending=False)
+                    # 검색 결과를 날짜 기준으로 내림차순 정렬
+                    df = df.sort_index(ascending=False)
 
-                results = df.to_html(classes='table table-striped table-hover', border=0)
-            except Exception as e:
-                messages.error(request, f"'{query}'에 대한 데이터를 찾을 수 없습니다. 올바른 검색어를 입력해주세요.")
-                print(f"Error fetching data for {query}: {e}")
+                    results = df.to_html(classes='table table-striped table-hover', border=0)
+                except Exception as e:
+                    messages.error(request, f"'{original_query}'에 대한 데이터를 찾을 수 없습니다. 올바른 검색어를 입력해주세요.")
+                    print(f"Error fetching data for {query}: {e}")
+            else:
+                messages.error(request, f"'{original_query}'에 대한 종목 코드를 찾을 수 없습니다. 올바른 회사 이름 또는 종목 코드를 입력해주세요.")
+
 
     context = {
         'form': form,
