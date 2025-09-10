@@ -9,7 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Axios 추가 (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 </head>
 <body>
@@ -38,7 +40,7 @@
                         <a class="nav-link fw-bold navbar-text-white" href="#">금융 데이터</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-bold navbar-text-white" href="#">자산관리</a>
+                        <a class="nav-link fw-bold navbar-text-white" href="{% url 'manage_account:account_list' %}">자산관리</a>
                     </li>
                 </ul>
             </div>
