@@ -2,6 +2,12 @@ from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
 from .models import Account, TransactionAccount
 from django.db.models import OuterRef, Subquery, Sum
+from django.shortcuts import get_object_or_404, render, redirect
+from django.http import HttpResponse
+from .models import Account, TransactionAccount
+from django.db.models import OuterRef, Subquery, Sum
+from .forms import AccountModelForm
+from acc_auth.models import User # User 모델의 위치에 따라 달라짐
 
 # Create your views here.
 def debug_request(request) :
@@ -44,9 +50,33 @@ def account_detail(request, pk) :
     account = get_object_or_404(Account, pk=pk)
     # 이 계좌와 관련된 TransactionAccount 객체들 가져오기
     transactions = TransactionAccount.objects.filter(my_acc=account).order_by('-txn_date')
-    
+
     context = {
         'account': account,
         'transactions': transactions
     }
     return render(request, 'manage_account/account_detail.html', context)
+
+from django.contrib.auth.hashers import make_password
+
+def account_create(request):
+    if request.method == 'POST':
+        form = AccountModelForm(request.POST)
+        if form.is_valid():
+            account = form.save(commit=False)
+            
+            # 비밀번호를 암호화하여 저장
+            account.acc_pw = make_password(form.cleaned_data['acc_pw'])
+
+            try:
+                temp_user = User.objects.get(pk=1)
+                account.acc_user_name = temp_user
+            except User.DoesNotExist:
+                pass
+
+            account.save()
+            return redirect('manage_account:account_list')
+    else:
+        form = AccountModelForm()
+    
+    return render(request, 'manage_account/account_create.html', {'form': form})
