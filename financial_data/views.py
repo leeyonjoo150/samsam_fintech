@@ -22,6 +22,12 @@ def my_stock_holdings(request):
     
     holding_data_with_prices = []
     
+    # 통화별 합계 계산을 위한 딕셔너리 초기화
+    total_by_currency = {
+        '원화': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
+        '달러': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
+    }
+
     # 각 계좌의 주식 보유 내역을 순회하며 데이터 처리
     for account in stock_accounts:
         # 해당 계좌에 연결된 모든 주식 보유 내역을 가져옵니다.
@@ -29,6 +35,7 @@ def my_stock_holdings(request):
         
         for holding in holdings:
             ticker = holding.ticker_code
+            currency = holding.currency
             try:
                 # FinanceDataReader를 사용하여 실시간 주식 데이터 조회
                 df = fdr.DataReader(ticker)
@@ -51,17 +58,28 @@ def my_stock_holdings(request):
                             'ticker_code': ticker,
                             'share': holding.share,
                             'purchase_amount': holding.pur_amount,
-                            'currency': holding.currency,
+                            'currency': currency,
                             'current_price': round(latest_price, 2),
                             'total_value': round(total_value, 2),
                             'profit_rate': round(profit_rate, 2)
                         })
+                        # 합계 딕셔너리에 값 추가
+                        if currency in total_by_currency:
+                            total_by_currency[currency]['purchase_amount'] += total_purchase_amount
+                            total_by_currency[currency]['current_value'] += total_value
             except Exception as e:
                 print(f"Error fetching data for {ticker}: {e}")
                 continue
 
+    # 딕셔너리에 저장된 각 통화별 합계 수익률 계산
+    for currency, totals in total_by_currency.items():
+        if totals['purchase_amount'] != 0:
+            totals['profit_loss'] = totals['current_value'] - totals['purchase_amount']
+            totals['profit_rate'] = (totals['profit_loss'] / totals['purchase_amount']) * 100
+
     context = {
         'holdings': holding_data_with_prices,
+        'total_by_currency': total_by_currency,
     }
     return render(request, 'financial_data/stock_holdings.html', context)
 
