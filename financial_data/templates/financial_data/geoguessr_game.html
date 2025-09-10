@@ -11,8 +11,8 @@
         <div class="card-body text-center">
             <h2 id="location-name" class="card-title"></h2>
             <p id="location-description" class="card-text"></p>
-        </div>
     </div>
+</div>
     
     <div id="result" class="mt-3"></div>
 
@@ -27,8 +27,9 @@
             <div id="map" style="height: 500px;"></div>
         </div>
     </div>
-    <div class="text-center mt-3">
+    <div class="text-center mt-3 d-flex justify-content-center gap-2">
         <button id="guess-button" class="pretty-button">여기야! (정답 제출)</button>
+        <a href="{% url 'financial_data:geoguessr_game' %}" id="new-game-button" class="pretty-button" style="text-decoration: none; padding: 15px 45px;">새 게임</a>
     </div>
 </div>
 
@@ -88,57 +89,48 @@
 
             const resultDiv = document.getElementById("result");
             const correctSection = document.getElementById("correct-answer-section");
+            const guessButton = document.getElementById("guess-button");
 
-            // 100m 이내인지 확인
-            if (distance <= 100) {
-                // 정답 처리
-                resultDiv.innerHTML = `
-                    <div class="alert alert-success">
-                        <strong>정답입니다!</strong> 100m 이내로 정확하게 맞추셨어요!
-                    </div>
-                `;
-                correctSection.classList.remove('d-none'); // 정답 섹션 표시
-                document.getElementById('location-image').src = locationImage;
-                document.getElementById('location-name').innerText = locationName;
-                document.getElementById('location-description').innerText = locationDescription;
-            }
-            else if (distance <= 300) {
-                // 정답 처리
+            // 결과 초기화
+            resultDiv.innerHTML = '';
+            
+            // 정답을 맞혔을 때
+            if (distance <= 300) {
                 resultDiv.innerHTML = `
                     <div class="alert alert-success">
                         <strong>정답입니다!</strong> 300m 이내로 근접하게 맞추셨어요!
                     </div>
                 `;
-                correctSection.classList.remove('d-none'); // 정답 섹션 표시
+                correctSection.classList.remove('d-none');
                 document.getElementById('location-image').src = locationImage;
                 document.getElementById('location-name').innerText = locationName;
                 document.getElementById('location-description').innerText = locationDescription;
-                }
-            else {
-                // 오답 처리
+                
+                guessButton.disabled = true; // 정답 제출 버튼 비활성화
+
+                new google.maps.Marker({
+                    position: actualLocation,
+                    map: map,
+                    title: "정답",
+                    icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                });
+                const line = new google.maps.Polyline({
+                    path: [guessedLocation, actualLocation],
+                    geodesic: true,
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                });
+                line.setMap(map);
+            } else {
+                // 오답일 때
                 const distanceKm = (distance / 1000).toFixed(2);
                 resultDiv.innerHTML = `
                     <div class="alert alert-danger">
-                        아쉽네요. 정답과 ${distanceKm} km 떨어져 있습니다.
+                        아쉽네요. 정답과 ${distanceKm} km 떨어져 있습니다. 다시 추측해 보세요.
                     </div>
                 `;
             }
-
-            // 정답 위치에 마커와 선 표시
-            new google.maps.Marker({
-                position: actualLocation,
-                map: map,
-                title: "정답",
-                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-            });
-            const line = new google.maps.Polyline({
-                path: [guessedLocation, actualLocation],
-                geodesic: true,
-                strokeColor: "#FF0000",
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-            });
-            line.setMap(map);
         });
     }
 
