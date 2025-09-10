@@ -203,18 +203,20 @@ def search_data(request):
             }
             
             # 매핑 딕셔너리에서 먼저 검색 (소문자로 변환하여 검색)
-            for name, ticker in name_to_ticker_mapping.items():
-                if query.lower() == name.lower():
-                    found_ticker = ticker
-                    break
+            if query.lower() in [name.lower() for name in name_to_ticker_mapping.keys()]:
+                # 딕셔너리에서 검색어와 일치하는 키를 찾아서 종목 코드를 가져옴
+                for name, ticker in name_to_ticker_mapping.items():
+                    if query.lower() == name.lower():
+                        found_ticker = ticker
+                        break
             
             # 매핑에 없으면 기존 로직대로 검색
             if not found_ticker:
                 # 검색할 거래소 목록
                 exchange_list = ['KRX', 'NASDAQ', 'NYSE', 'AMEX']
                 
-                # 사용자가 입력한 검색어가 암호화폐 거래쌍인지 확인
-                if '/' in query:
+                # 사용자가 입력한 검색어가 암호화폐 거래쌍인지 또는 점(.)이 포함된 종목 코드인지 확인
+                if '/' in query or '.' in query:
                     found_ticker = query.upper()
                 # 사용자가 입력한 검색어가 주식 종목 코드인지 확인
                 elif query.isdigit() or (query.isupper() and len(query) < 5):
