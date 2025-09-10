@@ -1,0 +1,88 @@
+{% extends 'common/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">내 주식 보유 현황</h1>
+    <div class="d-flex gap-3 mt-4 mb-4">
+        <a href="{% url 'financial_data:search_data' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">현재가 검색</a>
+        <a href="{% url 'financial_data:add_stock_account' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">계좌 추가하기</a>
+        <a href="{% url 'financial_data:add_stock_holding' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">주식 추가하기</a>
+    </div>
+    
+    {% if holdings %}
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>계좌</th>
+                <th>종목 코드</th>
+                <th>보유 수량</th>
+                <th>매수 평균가</th>
+                <th>현재가</th>
+                <th>총 평가액</th>
+                <th>수익률</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in holdings %}
+            <tr>
+                <td>{{ stock.account_info.st_company }}<br>{{ stock.account_info.st_acc_num }}</td>
+                <td>{{ stock.ticker_code }}</td>
+                <td>{{ stock.share|intcomma }}주</td>
+                <td>{{ stock.purchase_amount|intcomma }}{{ stock.currency }}</td>
+                <td>{{ stock.current_price|intcomma }}{{ stock.currency }}</td>
+                <td>{{ stock.total_value|intcomma }}{{ stock.currency }}</td>
+                <td>{{ stock.profit_rate|floatformat:"2" }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% for currency, totals in total_by_currency.items %}
+    {% if totals.purchase_amount > 0 %}
+    <h2 class="text-center mt-5 mb-4">{{ currency }} 전체 합계</h2>
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>합계 매수가</th>
+                <th>합계 평가액</th>
+                <th>합계 손익</th>
+                <th>합계 수익률</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    {% if currency == '원화' %}
+                        {{ totals.purchase_amount|intcomma }}{{ currency }}
+                    {% else %}
+                        {{ totals.purchase_amount|floatformat:"2"|intcomma }}{{ currency }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if currency == '원화' %}
+                        {{ totals.current_value|floatformat:"0"|intcomma }}{{ currency }}
+                    {% else %}
+                        {{ totals.current_value|floatformat:"2"|intcomma }}{{ currency }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if currency == '원화' %}
+                        {{ totals.profit_loss|floatformat:"0"|intcomma }}{{ currency }}
+                    {% else %}
+                        {{ totals.profit_loss|floatformat:"2"|intcomma }}{{ currency }}
+                    {% endif %}
+                </td>
+                <td>{{ totals.profit_rate|floatformat:"2" }}%</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+    {% endfor %}
+  
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        보유하고 있는 주식 내역이 없습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
