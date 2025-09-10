@@ -1,4 +1,5 @@
 {% extends 'common/base.html' %}
+{% load static %}
 {% block content %}
 
 <div class="container my-5">
@@ -7,7 +8,7 @@
             <h3 class="mb-4">새 계좌 추가</h3>
             <div class="card shadow-sm">
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="accountCreateForm">
                         {% csrf_token %}
                         
                         <!-- Display form fields manually for better styling -->
@@ -23,6 +24,11 @@
                             <label for="{{ form.acc_pw.id_for_label }}" class="form-label">{{ form.acc_pw.label }}</label>
                             {{ form.acc_pw }}
                         </div>
+                        <div class="mb-3">
+                            <label for="acc_pw_confirm" class="form-label">계좌 비밀번호 확인</label>
+                            <input type="password" class="form-control" id="acc_pw_confirm" name="acc_pw_confirm">
+                            <div id="password_match_error" class="text-danger mt-2"></div>
+                        </div>
 
                         <button type="submit" class="btn btn-primary">계좌 추가하기</button>
                     </form>
@@ -31,5 +37,7 @@
         </div>
     </div>
 </div>
+
+<script src="{% static 'manage_account/js/manacc.js' %}"></script>
 
 {% endblock %}

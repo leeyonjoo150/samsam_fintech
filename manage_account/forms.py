@@ -11,5 +11,7 @@ class AccountModelForm(forms.ModelForm):
             'acc_pw': '송금 비밀번호(4자리)',
         }
         widgets = {
-            'acc_pw': forms.PasswordInput(),
+            'acc_bank': forms.Select(attrs={'class': 'form-control'}),
+            'acc_num': forms.TextInput(attrs={'class': 'form-control'}),
+            'acc_pw': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
