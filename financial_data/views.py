@@ -370,6 +370,7 @@ def geoguessr_game(request):
     random_location = random.choice(locations)
 
     context = {
+        # Maps Platform API Key - API 제한사항 Street View Static API, Maps JavaScript API 허용하고 사용
         'api_key': settings.GOOGLE_MAPS_API_KEY,
         'start_location': random_location,
     }
