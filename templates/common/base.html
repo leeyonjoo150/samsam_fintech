@@ -39,8 +39,14 @@
                     <li class="nav-item">
                         <a class="nav-link fw-bold navbar-text-white" href="#">금융 데이터</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold navbar-text-white" href="{% url 'manage_account:account_list' %}">자산관리</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-bold navbar-text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            자산관리
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{% url 'manage_account:account_list' %}">계좌 목록</a></li>
+                            <li><a class="dropdown-item" href="{% url 'manage_account:account_create' %}">계좌 추가</a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>

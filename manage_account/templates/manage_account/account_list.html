@@ -39,8 +39,9 @@
                 </div>
             {% endfor %}
         {% else %}
-            <div class="list-group-item text-center">
-                <p class="mb-0 fs-5">계좌가 없습니다.</p>
+            <div class="list-group-item text-center p-5">
+                <p class="mb-4 fs-5">계좌가 없습니다.</p>
+                <a href="{% url 'manage_account:account_create' %}" class="btn pretty-button">계좌 추가하기</a>
             </div>
         {% endif %}
     </div>
