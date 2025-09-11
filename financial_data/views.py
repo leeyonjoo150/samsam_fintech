@@ -9,6 +9,66 @@ from django.contrib import messages
 from django.db import IntegrityError
 import math
 import random
+import pandas as pd
+
+# 전역 변수로 종목 리스트 캐시.
+# 서버가 시작될 때 데이터를 한 번만 로드하여 효율성을 높입니다.
+# 오류 방지를 위해 try-except 블록을 사용합니다.
+def load_stock_listings():
+    listings = {}
+    try:
+        listings['KRX'] = fdr.StockListing('KRX')
+        print("KRX 종목 목록을 성공적으로 로드했습니다.")
+    except Exception as e:
+        print(f"KRX 종목 목록 로드 중 오류 발생: {e}")
+        listings['KRX'] = pd.DataFrame()
+
+    try:
+        listings['NASDAQ'] = fdr.StockListing('NASDAQ')
+        print("NASDAQ 종목 목록을 성공적으로 로드했습니다.")
+    except Exception as e:
+        print(f"NASDAQ 종목 목록 로드 중 오류 발생: {e}")
+        listings['NASDAQ'] = pd.DataFrame()
+
+    try:
+        listings['NYSE'] = fdr.StockListing('NYSE')
+        print("NYSE 종목 목록을 성공적으로 로드했습니다.")
+    except Exception as e:
+        print(f"NYSE 종목 목록 로드 중 오류 발생: {e}")
+        listings['NYSE'] = pd.DataFrame()
+
+    try:
+        listings['AMEX'] = fdr.StockListing('AMEX')
+        print("AMEX 종목 목록을 성공적으로 로드했습니다.")
+    except Exception as e:
+        print(f"AMEX 종목 목록 로드 중 오류 발생: {e}")
+        listings['AMEX'] = pd.DataFrame()
+
+    return listings
+
+STOCK_LISTINGS = load_stock_listings()
+
+
+def get_company_name(ticker_code):
+    """
+    주어진 종목 코드에 해당하는 회사 이름을 캐시된 데이터에서 빠르게 조회합니다.
+    """
+    # 한국 주식 (KRX)에서 먼저 찾기
+    kor_stocks = STOCK_LISTINGS.get('KRX')
+    if not kor_stocks.empty and 'Code' in kor_stocks.columns:
+        matched_kor = kor_stocks[kor_stocks['Code'] == ticker_code]
+        if not matched_kor.empty and 'Name' in matched_kor.columns:
+            return matched_kor['Name'].iloc[0]
+
+    # 미국 주식 (NASDAQ, NYSE, AMEX)에서 찾기
+    for exchange in ['NASDAQ', 'NYSE', 'AMEX']:
+        stocks = STOCK_LISTINGS.get(exchange)
+        if not stocks.empty and 'Symbol' in stocks.columns:
+            matched_stock = stocks[stocks['Symbol'] == ticker_code]
+            if not matched_stock.empty and 'Name' in matched_stock.columns:
+                return matched_stock['Name'].iloc[0]
+
+    return "이름 없음"
 
 @login_required
 def my_stock_holdings(request):
@@ -36,6 +96,12 @@ def my_stock_holdings(request):
         for holding in holdings:
             ticker = holding.ticker_code
             currency = holding.currency
+            company_name = get_company_name(ticker)
+            
+            latest_price = None
+            total_value = None
+            profit_rate = None
+            
             try:
                 # FinanceDataReader를 사용하여 실시간 주식 데이터 조회
                 df = fdr.DataReader(ticker)
@@ -53,24 +119,30 @@ def my_stock_holdings(request):
                         if total_purchase_amount != 0:
                             profit_rate = ((total_value - total_purchase_amount) / total_purchase_amount) * 100
     
-                        holding_data_with_prices.append({
-                            'account_info': account, # 계좌 정보를 추가합니다.
-                            'ticker_code': ticker,
-                            'share': holding.share,
-                            'purchase_amount': holding.pur_amount,
-                            'currency': currency,
-                            'current_price': round(latest_price, 2),
-                            'total_value': round(total_value, 2),
-                            'profit_rate': round(profit_rate, 2)
-                        })
                         # 합계 딕셔너리에 값 추가
                         if currency in total_by_currency:
                             total_by_currency[currency]['purchase_amount'] += total_purchase_amount
                             total_by_currency[currency]['current_value'] += total_value
+
             except Exception as e:
                 print(f"Error fetching data for {ticker}: {e}")
-                continue
-
+                # 오류 발생 시 가격 정보를 None으로 설정하여 테이블에 표시
+                latest_price = None
+                total_value = None
+                profit_rate = None
+                
+            holding_data_with_prices.append({
+                'account_info': account,
+                'ticker_code': ticker,
+                'company_name': company_name,
+                'share': holding.share,
+                'purchase_amount': holding.pur_amount,
+                'currency': currency,
+                'current_price': round(latest_price, 2) if latest_price is not None else 'N/A',
+                'total_value': round(total_value, 2) if total_value is not None else 'N/A',
+                'profit_rate': round(profit_rate, 2) if profit_rate is not None else 'N/A'
+            })
+    
     # 딕셔너리에 저장된 각 통화별 합계 수익률 계산
     for currency, totals in total_by_currency.items():
         if totals['purchase_amount'] != 0:
@@ -270,7 +342,7 @@ def search_data(request):
 
 # GeoGuessr 게임 뷰
 def geoguessr_game(request):
-    # 게임에 사용할 장소 목록 (예시)
+    # 게임에 사용할 장소 목록
     locations = [
         {
             'name': '멋쟁이 사자처럼',
