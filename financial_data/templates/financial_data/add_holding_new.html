@@ -1,0 +1,81 @@
+{% extends 'common/base.html' %}
+{% load static %}
+
+{# 주식 검색 자동완성 기능 테스트 #}
+
+{% block extra_head %}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">보유 종목 추가 (새 버전)</h1>
+    {% if messages %}
+        <div class="alert-container">
+            {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group mb-3">
+            <label for="{{ form.st_id.id_for_label }}">주식 계좌</label>
+            {{ form.st_id }}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.ticker_code.id_for_label }}">종목 코드</label>
+            <select name="{{ form.ticker_code.name }}" id="id_ticker_code" class="form-control" style="width: 100%;">
+                <option value="{{ form.ticker_code.value|default:'' }}">{{ form.ticker_code.value|default:'' }}</option>
+            </select>
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.share.id_for_label }}">보유 수량</label>
+            {{ form.share }}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.pur_amount.id_for_label }}">매수 평균가</label>
+            {{ form.pur_amount }}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.currency.id_for_label }}">통화</label>
+            {{ form.currency }}
+        </div>
+        <div class="d-grid mt-4">
+            <button type="submit" class="pretty-button">추가하기</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // jQuery 충돌 방지
+        var jq = $.noConflict();
+
+        jq(document).ready(function() {
+            jq('#id_ticker_code').select2({
+                ajax: {
+                    url: "{% url 'financial_data:search_stock_ticker' %}",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1,
+                placeholder: '회사명 또는 종목 코드를 입력하세요'
+            });
+        });
+    </script>
+{% endblock %}

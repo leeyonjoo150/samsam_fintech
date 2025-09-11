@@ -2,6 +2,8 @@ import FinanceDataReader as fdr
 from django.shortcuts import render,redirect
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.db.models import Q # 검색을 위해 Q 객체를 import 합니다.
 from .forms import StockHoldingForm, StockAccountForm, SearchForm
 from manage_account.models import StockContent, StockAccount
 from django.db.models import Sum, F
@@ -375,3 +377,99 @@ def geoguessr_game(request):
         'start_location': random_location,
     }
     return render(request, 'financial_data/geoguessr_game.html', context)
+
+
+
+# 자동 완성 기능 구현 시도중
+
+def search_stock_ticker(request):
+    """
+    주식 종목을 검색하여 JSON 응답을 반환하는 뷰
+    """
+    query = request.GET.get('q', '').strip()
+    results = []
+
+    if query:
+        # FinanceDataReader를 사용하여 종목 목록 캐시를 가져옵니다.
+        kor_stocks = STOCK_LISTINGS.get('KRX')
+        us_stocks = pd.concat([STOCK_LISTINGS.get('NASDAQ'), STOCK_LISTINGS.get('NYSE'), STOCK_LISTINGS.get('AMEX')])
+
+        # 한글 또는 영문 검색어에 따라 필터링
+        # 한국 주식 검색 (Code와 Name을 모두 검사)
+        if not kor_stocks.empty:
+            matched_kor = kor_stocks[
+                kor_stocks['Code'].str.contains(query, case=False, na=False) |
+                kor_stocks['Name'].str.contains(query, case=False, na=False)
+            ]
+            for _, row in matched_kor.iterrows():
+                results.append({
+                    'id': row['Code'],
+                    'text': f"{row['Name']} ({row['Code']})"
+                })
+
+        # 미국 주식 검색 (Symbol과 Name을 모두 검사)
+        if not us_stocks.empty:
+            matched_us = us_stocks[
+                us_stocks['Symbol'].str.contains(query, case=False, na=False) |
+                us_stocks['Name'].str.contains(query, case=False, na=False)
+            ]
+            for _, row in matched_us.iterrows():
+                results.append({
+                    'id': row['Symbol'],
+                    'text': f"{row['Name']} ({row['Symbol']})"
+                })
+        
+    # 결과 개수 제한
+    return JsonResponse({'results': results[:20]}, safe=False)
+
+@login_required
+def add_stock_holding_new(request):
+    user = request.user
+    
+    # 사용자의 주식 계좌를 가져옵니다.
+    user_accounts = StockAccount.objects.filter(st_user_id=user)
+    if not user_accounts.exists():
+        messages.error(request, '주식 계좌가 없어 보유 종목을 추가할 수 없습니다. 먼저 계좌를 등록해주세요.')
+        return redirect('manage_account:add_stock_account')
+
+    if request.method == 'POST':
+        form = StockHoldingForm(request.POST, user=user) # 폼에 user 객체를 전달합니다.
+        if form.is_valid():
+            new_ticker_code = form.cleaned_data['ticker_code']
+            new_share = form.cleaned_data['share']
+            new_pur_amount = form.cleaned_data['pur_amount']
+            new_currency = form.cleaned_data['currency']
+            stock_account = form.cleaned_data['st_id'] # 선택된 계좌 객체를 가져옵니다.
+
+            existing_holding = StockContent.objects.filter(
+                st_id=stock_account,
+                ticker_code=new_ticker_code,
+                currency=new_currency
+            ).first()
+
+            if existing_holding:
+                total_value = (existing_holding.pur_amount * existing_holding.share) + (new_pur_amount * new_share)
+                total_share = existing_holding.share + new_share
+                
+                new_avg_pur_amount = total_value / total_share
+                
+                existing_holding.pur_amount = new_avg_pur_amount
+                existing_holding.share = total_share
+                existing_holding.save()
+                messages.success(request, f'{new_ticker_code} 종목이 기존 계좌에 성공적으로 추가되었습니다.')
+            else:
+                holding = form.save(commit=False)
+                holding.st_id = stock_account
+                holding.save()
+                messages.success(request, f'{new_ticker_code} 종목이 성공적으로 추가되었습니다.')
+            
+            return redirect('financial_data:my_stock_holdings')
+    else:
+        form = StockHoldingForm(user=user) # GET 요청에도 user 객체를 전달합니다.
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'financial_data/add_holding_new.html', context) # 이 부분을 수정
+
+# 여기까지가 자동완성 기능 
