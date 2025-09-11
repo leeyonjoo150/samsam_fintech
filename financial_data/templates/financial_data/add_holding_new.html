@@ -1,15 +1,13 @@
 {% extends 'common/base.html' %}
 {% load static %}
 
-{# 주식 검색 자동완성 기능 테스트 #}
-
-{% block extra_head %}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-{% endblock %}
-
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">보유 종목 추가 (새 버전)</h1>
+    <h1 class="text-center mb-4">보유 종목 추가</h1>
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    
     {% if messages %}
         <div class="alert-container">
             {% for message in messages %}
@@ -17,6 +15,7 @@
             {% endfor %}
         </div>
     {% endif %}
+    
     <form method="post">
         {% csrf_token %}
         <div class="form-group mb-3">
@@ -24,9 +23,9 @@
             {{ form.st_id }}
         </div>
         <div class="form-group mb-3">
-            <label for="{{ form.ticker_code.id_for_label }}">종목 코드</label>
-            <select name="{{ form.ticker_code.name }}" id="id_ticker_code" class="form-control" style="width: 100%;">
-                <option value="{{ form.ticker_code.value|default:'' }}">{{ form.ticker_code.value|default:'' }}</option>
+            <label for="id_ticker_code">종목 코드</label>
+            <select name="ticker_code" id="id_ticker_code" class="form-control" style="width: 100%;">
+                <option></option>
             </select>
         </div>
         <div class="form-group mb-3">
@@ -42,40 +41,38 @@
             {{ form.currency }}
         </div>
         <div class="d-grid mt-4">
-            <button type="submit" class="pretty-button">추가하기</button>
+            <button type="submit" class="btn btn-primary">추가하기</button>
         </div>
     </form>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        // jQuery 충돌 방지
-        var jq = $.noConflict();
+<!-- jQuery와 Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
-        jq(document).ready(function() {
-            jq('#id_ticker_code').select2({
-                ajax: {
-                    url: "{% url 'financial_data:search_stock_ticker' %}",
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return {
-                            q: params.term
-                        };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: data.results
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 1,
-                placeholder: '회사명 또는 종목 코드를 입력하세요'
-            });
-        });
-    </script>
+<script>
+$(document).ready(function() {
+    $('#id_ticker_code').select2({
+        ajax: {
+            url: "{% url 'financial_data:search_stock_ticker' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                console.log('검색어:', params.term);
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                console.log('검색 결과:', data);
+                return { results: data.results };
+            },
+            cache: true
+        },
+        minimumInputLength: 1,
+        placeholder: '회사명 또는 종목 코드를 입력하세요',
+        allowClear: true
+    });
+    
+    console.log('Select2 초기화 완료');
+});
+</script>
 {% endblock %}
