@@ -88,3 +88,25 @@ body {
 textarea.form-control {
     min-height: 100px; /* 텍스트 에어리어 최소 높이 */
 }
+
+.dropdown-toggle::after {
+    display: none;
+}
+
+/* ==========================================================================
+   Dropdown Menu Styles
+   ========================================================================== */
+.dropdown-menu {
+    background-color: #6964e8; /* Approximates the nav-link hover color */
+    border: none; /* Remove default border */
+}
+
+.dropdown-item {
+    color: #FFFFFF !important; /* White text */
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: #8784f0; /* Lighter version for hover */
+    color: #FFFFFF !important; /* Ensure text stays white */
+}

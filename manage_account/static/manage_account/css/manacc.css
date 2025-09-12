@@ -1,0 +1,26 @@
+.account-list-heading {
+    font-family: 'IBM Plex Sans KR', sans-serif;
+    font-weight: 700 !important;
+}
+.pretty-button-small {
+    padding: 5px 15px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease 0s;
+}
+.pretty-button-small:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.table-gradient {
+    background-image: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+    color: white; /* Ensure text is readable on gradient */
+}
