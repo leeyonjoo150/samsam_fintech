@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'financial_data',
     'manage_account',
     'acc_auth',
-    'main'
+    'main',
+    'transfers',
 ]
 
 AUTH_USER_MODEL = 'acc_auth.User'
