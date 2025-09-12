@@ -12,6 +12,7 @@ from django.db import IntegrityError
 import math
 import random
 import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
 
 # 전역 변수로 종목 리스트 캐시.
 # 서버가 시작될 때 데이터를 한 번만 로드하여 효율성을 높입니다.
@@ -72,6 +73,19 @@ def get_company_name(ticker_code):
 
     return "이름 없음"
 
+# 병렬 처리를 위한 헬퍼 함수
+def fetch_stock_data(ticker):
+    """
+    단일 종목 코드로 주식 데이터를 가져오는 함수.
+    """
+    try:
+        df = fdr.DataReader(ticker)
+        if not df.empty:
+            return ticker, df.iloc[-1]
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {e}")
+    return ticker, None
+
 @login_required
 def my_stock_holdings(request):
     """
@@ -79,73 +93,68 @@ def my_stock_holdings(request):
     """
     user = request.user
     
-    # 사용자의 모든 주식 계좌를 가져옵니다.
     stock_accounts = StockAccount.objects.filter(st_user_id=user)
     
-    holding_data_with_prices = []
+    # 사용자가 보유한 모든 종목을 가져옵니다.
+    holdings = StockContent.objects.filter(st_id__in=stock_accounts).select_related('st_id')
     
-    # 통화별 합계 계산을 위한 딕셔너리 초기화
+    holding_data_with_prices = []
     total_by_currency = {
         '원화': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
         '달러': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
     }
 
-    # 각 계좌의 주식 보유 내역을 순회하며 데이터 처리
-    for account in stock_accounts:
-        # 해당 계좌에 연결된 모든 주식 보유 내역을 가져옵니다.
-        holdings = StockContent.objects.filter(st_id=account)
-        
-        for holding in holdings:
-            ticker = holding.ticker_code
-            currency = holding.currency
-            company_name = get_company_name(ticker)
-            
-            latest_price = None
-            total_value = None
-            profit_rate = None
-            
-            try:
-                # FinanceDataReader를 사용하여 실시간 주식 데이터 조회
-                df = fdr.DataReader(ticker)
-                if not df.empty:
-                    latest_price = df.iloc[-1]['Close']
-                    if not math.isnan(latest_price):
-                        # 총 평가액 계산
-                        total_value = latest_price * holding.share
-                        
-                        # 총 매수 금액 계산 (보유량 * 매수가)
-                        total_purchase_amount = holding.pur_amount * holding.share
-                        
-                        # 수익률 계산: (총 평가액 - 총 매수 금액) / 총 매수 금액 * 100
-                        profit_rate = 0
-                        if total_purchase_amount != 0:
-                            profit_rate = ((total_value - total_purchase_amount) / total_purchase_amount) * 100
-    
-                        # 합계 딕셔너리에 값 추가
-                        if currency in total_by_currency:
-                            total_by_currency[currency]['purchase_amount'] += total_purchase_amount
-                            total_by_currency[currency]['current_value'] += total_value
+    # 보유 종목의 고유한 종목 코드 목록을 생성합니다.
+    unique_tickers = list(holdings.values_list('ticker_code', flat=True).distinct())
 
-            except Exception as e:
-                print(f"Error fetching data for {ticker}: {e}")
-                # 오류 발생 시 가격 정보를 None으로 설정하여 테이블에 표시
-                latest_price = None
-                total_value = None
-                profit_rate = None
-                
-            holding_data_with_prices.append({
-                'account_info': account,
-                'ticker_code': ticker,
-                'company_name': company_name,
-                'share': holding.share,
-                'purchase_amount': holding.pur_amount,
-                'currency': currency,
-                'current_price': round(latest_price, 2) if latest_price is not None else 'N/A',
-                'total_value': round(total_value, 2) if total_value is not None else 'N/A',
-                'profit_rate': round(profit_rate, 2) if profit_rate is not None else 'N/A'
-            })
+    # 병렬 처리를 사용하여 모든 종목 데이터를 동시에 가져옵니다.
+    # 최대 워커 수를 10으로 설정하여 동시에 10개의 API 호출을 처리합니다.
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # map 함수는 각 ticker에 대해 fetch_stock_data 함수를 병렬로 실행합니다.
+        # 결과는 제출된 순서대로 반환됩니다.
+        price_data = list(executor.map(fetch_stock_data, unique_tickers))
+
+    # 가져온 가격 데이터를 딕셔너리 형태로 변환하여 빠른 조회를 가능하게 합니다.
+    price_dict = {ticker: data for ticker, data in price_data if data is not None}
     
-    # 딕셔너리에 저장된 각 통화별 합계 수익률 계산
+    # 각 보유 종목에 대해 가격 데이터를 합칩니다.
+    for holding in holdings:
+        ticker = holding.ticker_code
+        currency = holding.currency
+        company_name = get_company_name(ticker)
+        
+        latest_price = None
+        total_value = None
+        profit_rate = None
+        
+        if ticker in price_dict:
+            latest_price_series = price_dict[ticker]
+            latest_price = latest_price_series.get('Close')
+            
+            if latest_price is not None and not math.isnan(latest_price):
+                total_value = latest_price * holding.share
+                total_purchase_amount = holding.pur_amount * holding.share
+                
+                profit_rate = 0
+                if total_purchase_amount != 0:
+                    profit_rate = ((total_value - total_purchase_amount) / total_purchase_amount) * 100
+
+                if currency in total_by_currency:
+                    total_by_currency[currency]['purchase_amount'] += total_purchase_amount
+                    total_by_currency[currency]['current_value'] += total_value
+
+        holding_data_with_prices.append({
+            'account_info': holding.st_id,
+            'ticker_code': ticker,
+            'company_name': company_name,
+            'share': holding.share,
+            'purchase_amount': holding.pur_amount,
+            'currency': currency,
+            'current_price': round(latest_price, 2) if latest_price is not None else 'N/A',
+            'total_value': round(total_value, 2) if total_value is not None else 'N/A',
+            'profit_rate': round(profit_rate, 2) if profit_rate is not None else 'N/A'
+        })
+    
     for currency, totals in total_by_currency.items():
         if totals['purchase_amount'] != 0:
             totals['profit_loss'] = totals['current_value'] - totals['purchase_amount']
