@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import my_stock_holdings, add_stock_holding, add_stock_account, search_data, search_stock_ticker, add_stock_holding_new
-from .views import geoguessr_game
+from .views import geoguessr_game, refresh_stock_cache
 
 app_name = 'financial_data'
 
@@ -12,4 +12,5 @@ urlpatterns = [
     path('search/', search_data, name='search_data'),
     path("geoguessr/", geoguessr_game, name='geoguessr_game'),
     path('search_ticker/', search_stock_ticker, name='search_stock_ticker'),
+    path('refresh-cache/', refresh_stock_cache, name='refresh_stock_cache'),
 ]

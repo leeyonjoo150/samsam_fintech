@@ -90,7 +90,12 @@ $(document).ready(function() {
         },
         minimumInputLength: 1,
         placeholder: '회사명 또는 종목 코드를 입력하세요',
-        allowClear: true
+        allowClear: true,
+        language: {
+            searching: function () {
+                return '';  // 로딩 메시지 숨김
+            } 
+        }       
     });
     
     console.log('Select2 초기화 완료');

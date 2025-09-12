@@ -13,29 +13,34 @@ import math
 import random
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
+from django.core.cache import cache
 
 # 전역 변수로 종목 리스트 캐시.
 # 서버가 시작될 때 데이터를 한 번만 로드하여 효율성을 높입니다.
 # 오류 방지를 위해 try-except 블록을 사용합니다.
 def load_stock_listings():
+    # 캐시에서 'stock_listings' 데이터를 가져옵니다.
+    listings = cache.get('stock_listings')
+    if listings:
+        print("종목 목록을 캐시에서 로드했습니다.")
+        return listings
+        
+    print("종목 목록을 API에서 로드합니다.")
     listings = {}
     try:
         listings['KRX'] = fdr.StockListing('KRX')
-        print("KRX 종목 목록을 성공적으로 로드했습니다.")
     except Exception as e:
         print(f"KRX 종목 목록 로드 중 오류 발생: {e}")
         listings['KRX'] = pd.DataFrame()
-
+    # ... (기존 NASDAQ, NYSE, AMEX 로직 동일) ...
     try:
         listings['NASDAQ'] = fdr.StockListing('NASDAQ')
-        print("NASDAQ 종목 목록을 성공적으로 로드했습니다.")
     except Exception as e:
         print(f"NASDAQ 종목 목록 로드 중 오류 발생: {e}")
         listings['NASDAQ'] = pd.DataFrame()
 
     try:
         listings['NYSE'] = fdr.StockListing('NYSE')
-        print("NYSE 종목 목록을 성공적으로 로드했습니다.")
     except Exception as e:
         print(f"NYSE 종목 목록 로드 중 오류 발생: {e}")
         listings['NYSE'] = pd.DataFrame()
@@ -47,6 +52,9 @@ def load_stock_listings():
         print(f"AMEX 종목 목록 로드 중 오류 발생: {e}")
         listings['AMEX'] = pd.DataFrame()
 
+    # 캐시에 저장합니다. (예: 1일 = 86400초)
+    # 캐시는 서버 재시작 시 초기화됩니다.
+    cache.set('stock_listings', listings, 60*60*24)
     return listings
 
 STOCK_LISTINGS = load_stock_listings()
@@ -243,29 +251,31 @@ def add_stock_account(request):
     return render(request, 'financial_data/add_stock_account.html', context)
 
 def search_data(request):
-    """
-    사용자 입력에 따라 금융 데이터를 검색하고 결과를 반환하는 뷰
-    """
     form = SearchForm(request.GET or None)
     results = None
     query = None
     
-    # 검색창 위에 보여줄 주요 지표 및 환율 데이터
-    market_data_tickers = ['KS11', 'IXIC', 'US10YT', 'USD/KRW', 'EUR/KRW']
-    market_data = []
+    # 캐시에서 'market_data'를 먼저 가져옵니다.
+    market_data = cache.get('market_data')
+    if not market_data:
+        # 캐시가 없으면 API를 호출하여 데이터를 가져옵니다.
+        market_data_tickers = ['KS11', 'IXIC', 'US10YT', 'USD/KRW', 'EUR/KRW']
+        market_data = []
 
-    for ticker in market_data_tickers:
-        try:
-            df = fdr.DataReader(ticker)
-            if not df.empty and 'Close' in df.columns:
-                latest_price = df.iloc[-1]['Close']
-                market_data.append({
-                    'name': ticker,
-                    'price': f'{latest_price:,.2f}'
-                })
-        except Exception as e:
-            print(f"Error fetching data for {ticker}: {e}")
-            continue
+        for ticker in market_data_tickers:
+            try:
+                df = fdr.DataReader(ticker)
+                if not df.empty and 'Close' in df.columns:
+                    latest_price = df.iloc[-1]['Close']
+                    market_data.append({
+                        'name': ticker,
+                        'price': f'{latest_price:,.2f}'
+                    })
+            except Exception as e:
+                print(f"Error fetching data for {ticker}: {e}")
+                continue
+        # 데이터를 캐시에 저장합니다. (예: 10분 = 600초)
+        cache.set('market_data', market_data, 600)
 
     if form.is_valid():
         query = form.cleaned_data.get('query')
@@ -350,6 +360,14 @@ def search_data(request):
     }
     return render(request, 'financial_data/search.html', context)
 
+def refresh_stock_cache(request):
+    """
+    주요 지수 및 종목 목록 캐시를 수동으로 삭제하는 뷰
+    """
+    cache.delete('stock_listings')
+    cache.delete('market_data')
+    messages.success(request, '데이터가 성공적으로 갱신되었습니다.')
+    return redirect('financial_data:search_data')
 
 # GeoGuessr 게임 뷰
 def geoguessr_game(request):
