@@ -8,6 +8,7 @@ from .models import Account, TransactionAccount
 from django.db.models import OuterRef, Subquery, Sum
 from .forms import AccountModelForm
 from acc_auth.models import User # User 모델의 위치에 따라 달라짐
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 def debug_request(request) :
@@ -21,6 +22,7 @@ def debug_request(request) :
     """
     return HttpResponse(content)
 
+@login_required
 def account_list(request) :
     #계좌 전체 리스트 가져오기
     
@@ -32,8 +34,8 @@ def account_list(request) :
         my_acc=OuterRef('pk')
     ).order_by('-txn_date').values('txn_balance')[:1]
 
-    # 계좌 목록에 최신 잔액을 주석으로 추가
-    accounts = Account.objects.annotate(
+    # 현재 로그인한 사용자의 계좌만 가져오기
+    accounts = Account.objects.filter(acc_user_name=request.user).annotate(
         latest_balance=Subquery(latest_transaction_balance)
     )
     
@@ -46,14 +48,34 @@ def account_list(request) :
     }
     return render(request, 'manage_account/account_list.html', context)
 
+from datetime import datetime, timedelta
+
+@login_required
+@login_required
 def account_detail(request, pk) :
     account = get_object_or_404(Account, pk=pk)
-    # 이 계좌와 관련된 TransactionAccount 객체들 가져오기
-    transactions = TransactionAccount.objects.filter(my_acc=account).order_by('-txn_date')
+    
+    # 계좌 소유자 확인
+    if account.acc_user_name != request.user:
+        return redirect('manage_account:account_list')
+
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    transactions = TransactionAccount.objects.filter(my_acc=account)
+
+    if start_date_str and end_date_str:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+        transactions = transactions.filter(txn_date__range=(start_date, end_date))
+
+    transactions = transactions.order_by('-txn_date')
 
     context = {
         'account': account,
-        'transactions': transactions
+        'transactions': transactions,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
     }
     return render(request, 'manage_account/account_detail.html', context)
 

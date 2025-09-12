@@ -110,3 +110,7 @@ textarea.form-control {
     background-color: #8784f0; /* Lighter version for hover */
     color: #FFFFFF !important; /* Ensure text stays white */
 }
+
+.navbar-nav .dropdown-menu {
+    margin-top: 8px; /* Add margin to prevent overlap with a more specific selector */
+}
