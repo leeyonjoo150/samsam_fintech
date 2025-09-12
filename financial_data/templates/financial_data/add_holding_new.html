@@ -5,7 +5,6 @@
 <div class="container mt-5">
     <h1 class="text-center mb-4">보유 종목 추가</h1>
     
-    <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
     
     {% if messages %}
@@ -18,27 +17,50 @@
     
     <form method="post">
         {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+        
         <div class="form-group mb-3">
             <label for="{{ form.st_id.id_for_label }}">주식 계좌</label>
             {{ form.st_id }}
+            {% if form.st_id.errors %}
+                <div class="text-danger">{{ form.st_id.errors }}</div>
+            {% endif %}
         </div>
+        
         <div class="form-group mb-3">
             <label for="id_ticker_code">종목 코드</label>
             <select name="ticker_code" id="id_ticker_code" class="form-control" style="width: 100%;">
                 <option></option>
             </select>
+            {% if form.ticker_code.errors %}
+                <div class="text-danger">{{ form.ticker_code.errors }}</div>
+            {% endif %}
         </div>
         <div class="form-group mb-3">
             <label for="{{ form.share.id_for_label }}">보유 수량</label>
             {{ form.share }}
+            {% if form.share.errors %}
+                <div class="text-danger">{{ form.share.errors }}</div>
+            {% endif %}
         </div>
         <div class="form-group mb-3">
             <label for="{{ form.pur_amount.id_for_label }}">매수 평균가</label>
             {{ form.pur_amount }}
+            {% if form.pur_amount.errors %}
+                <div class="text-danger">{{ form.pur_amount.errors }}</div>
+            {% endif %}
         </div>
         <div class="form-group mb-3">
             <label for="{{ form.currency.id_for_label }}">통화</label>
             {{ form.currency }}
+            {% if form.currency.errors %}
+                <div class="text-danger">{{ form.currency.errors }}</div>
+            {% endif %}
         </div>
         <div class="d-grid mt-4">
             <button type="submit" class="btn btn-primary">추가하기</button>
@@ -46,7 +68,6 @@
     </form>
 </div>
 
-<!-- jQuery와 Select2 JS -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
