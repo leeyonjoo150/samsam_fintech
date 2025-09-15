@@ -1,0 +1,104 @@
+{% extends 'common/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">보유 종목 추가</h1>
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    
+    {% if messages %}
+        <div class="alert-container">
+            {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+        
+        <div class="form-group mb-3">
+            <label for="{{ form.st_id.id_for_label }}">주식 계좌</label>
+            {{ form.st_id }}
+            {% if form.st_id.errors %}
+                <div class="text-danger">{{ form.st_id.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group mb-3">
+            <label for="id_ticker_code">종목 코드</label>
+            <select name="ticker_code" id="id_ticker_code" class="form-control" style="width: 100%;">
+                <option></option>
+            </select>
+            {% if form.ticker_code.errors %}
+                <div class="text-danger">{{ form.ticker_code.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.share.id_for_label }}">보유 수량</label>
+            {{ form.share }}
+            {% if form.share.errors %}
+                <div class="text-danger">{{ form.share.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.pur_amount.id_for_label }}">매수 평균가</label>
+            {{ form.pur_amount }}
+            {% if form.pur_amount.errors %}
+                <div class="text-danger">{{ form.pur_amount.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group mb-3">
+            <label for="{{ form.currency.id_for_label }}">통화</label>
+            {{ form.currency }}
+            {% if form.currency.errors %}
+                <div class="text-danger">{{ form.currency.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="d-grid mt-4">
+            <button type="submit" class="btn btn-primary">추가하기</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#id_ticker_code').select2({
+        ajax: {
+            url: "{% url 'financial_data:search_stock_ticker' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                console.log('검색어:', params.term);
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                console.log('검색 결과:', data);
+                return { results: data.results };
+            },
+            cache: true
+        },
+        minimumInputLength: 1,
+        placeholder: '회사명 또는 종목 코드를 입력하세요',
+        allowClear: true,
+        language: {
+            searching: function () {
+                return '';  // 로딩 메시지 숨김
+            } 
+        }       
+    });
+    
+    console.log('Select2 초기화 완료');
+});
+</script>
+{% endblock %}
