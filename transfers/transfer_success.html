@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white text-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-check-circle-fill"></i> 송금 완료!
+                </h4>
+            </div>
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                </div>
+                
+                <h3 class="text-success mb-4">송금이 성공적으로 완료되었습니다!</h3>
+                
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-info-circle"></i> 
+                    {{ amount|floatformat:0 }}원이 정상적으로 송금되었습니다.
+                </div>
+
+                <!-- 송금 상세 정보 -->
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">송금 상세 정보</h6>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">송금일시:</div>
+                            <div class="col-8 text-start">{{ transaction.created_at|date:"Y-m-d H:i:s" }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">송금계좌:</div>
+                            <div class="col-8 text-start">{{ transaction.from_account.acc_bank }} {{ transaction.from_account.acc_num }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">받는계좌:</div>
+                            <div class="col-8 text-start">{{ transaction.to_account.acc_bank }} {{ transaction.to_account.acc_num }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">받는 분:</div>
+                            <div class="col-8 text-start">{{ transaction.to_account.acc_user_name.username }}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">송금금액:</div>
+                            <div class="col-8 text-start fw-bold text-primary">{{ transaction.amount|floatformat:0 }}원</div>
+                        </div>
+                        {% if transaction.description %}
+                        <div class="row">
+                            <div class="col-4 text-muted text-start">메모:</div>
+                            <div class="col-8 text-start">{{ transaction.description }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'transfers:transfer_form' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i> 다시 송금하기
+                    </a>
+                    <a href="{% url 'transfers:transaction_history' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-list"></i> 거래내역 보기
+                    </a>
+                    <a href="{% url 'transfers:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> 홈으로
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 5초 후 자동으로 대시보드로 이동 (선택사항)
+// setTimeout(function() {
+//     window.location.href = "{% url 'transfers:dashboard' %}";
+// }, 5000);
+
+// 성공 효과음이나 애니메이션을 추가할 수 있습니다
+document.addEventListener('DOMContentLoaded', function() {
+    // 성공 아이콘 애니메이션
+    const successIcon = document.querySelector('.bi-check-circle-fill');
+    successIcon.style.animation = 'bounce 0.6s ease-in-out';
+});
+</script>
+
+<style>
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+</style>
+{% endblock %}

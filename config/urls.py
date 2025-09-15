@@ -26,7 +26,8 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('findata/', include('financial_data.urls')),
     path('manacc/', include('manage_account.urls')),
-    path('accauth/',include('acc_auth.urls'))
+    path('accauth/',include('acc_auth.urls')),
+    path('transfers/', include('transfers.urls')),
 ]
 
 if settings.DEBUG:

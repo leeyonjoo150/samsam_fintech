@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-arrow-right-circle"></i> 송금하기
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'transfers:verify_password' %}" id="transferForm">
+                    {% csrf_token %}
+                    
+                    <!-- 송금계좌 선택 -->
+                    <div class="mb-4">
+                        <label for="from_account" class="form-label fw-bold">내가 송금하는 계좌 정보</label>
+                        <select class="form-select" id="from_account" name="from_account" required>
+                            <option value="">계좌를 선택하세요</option>
+                            {% for account in user_accounts %}
+                                <option value="{{ account.acc_num }}">{{ account.acc_bank }} {{ account.acc_num }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 받는계좌 정보 -->
+                    <div class="mb-3">
+                        <label for="to_account" class="form-label fw-bold">보내고싶은 계좌 정보(은행, 계좌번호)</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="recipient_bank" name="recipient_bank" 
+                                       placeholder="은행명" required>
+                            </div>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="to_account" name="to_account" 
+                                       placeholder="계좌번호" required>
+                            </div>
+                        </div>
+                        <small class="text-muted">예: 국민은행, 123456-78-901234</small>
+                    </div>
+
+                    <!-- 금액 입력 -->
+                    <div class="mb-4">
+                        <label for="amount" class="form-label fw-bold">금액</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="amount" name="amount" 
+                                   placeholder="송금할 금액을 입력하세요" min="100" required>
+                            <span class="input-group-text">원</span>
+                        </div>
+                    </div>
+
+                    <!-- 메모 -->
+                    <div class="mb-4">
+                        <label for="description" class="form-label">메모 (선택사항)</label>
+                        <input type="text" class="form-control" id="description" name="description" 
+                               placeholder="송금 메모를 입력하세요">
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" onclick="history.back()">
+                            <i class="bi bi-arrow-left"></i> 취소
+                        </button>
+                        <button type="button" class="btn btn-primary flex-fill" onclick="validateAndSubmit()">
+                            <i class="bi bi-arrow-right"></i> 확인
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-send"></i> 송금
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function validateAndSubmit() {
+    const form = document.getElementById('transferForm');
+    const fromAccount = document.getElementById('from_account').value;
+    const toAccount = document.getElementById('to_account').value;
+    const amount = document.getElementById('amount').value;
+    const recipientBank = document.getElementById('recipient_bank').value;
+
+    if (!fromAccount) {
+        alert('송금할 계좌를 선택해주세요.');
+        return;
+    }
+    
+    if (!recipientBank) {
+        alert('받는 분의 은행명을 입력해주세요.');
+        return;
+    }
+    
+    if (!toAccount) {
+        alert('받는 분의 계좌번호를 입력해주세요.');
+        return;
+    }
+    
+    if (!amount || amount < 100) {
+        alert('송금 금액을 올바르게 입력해주세요. (최소 100원)');
+        return;
+    }
+
+    // AJAX로 계좌 정보 확인
+    const formData = new FormData();
+    formData.append('account_num', toAccount);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+    fetch('{% url "transfers:get_account_info" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const confirmMsg = `송금 정보를 확인해주세요:\n\n` +
+                             `받는 분: ${data.owner_name}\n` +
+                             `은행: ${data.bank_name}\n` +
+                             `계좌: ${toAccount}\n` +
+                             `금액: ${parseInt(amount).toLocaleString()}원\n\n` +
+                             `송금하시겠습니까?`;
+            
+            if (confirm(confirmMsg)) {
+                form.submit();
+            }
+        } else {
+            alert(data.message || '계좌 정보를 확인할 수 없습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('계좌 정보 확인 중 오류가 발생했습니다.');
+    });
+}
+
+// 금액 입력시 천단위 콤마 표시
+document.getElementById('amount').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/,/g, '');
+    if (value) {
+        e.target.value = parseInt(value).toLocaleString();
+    }
+});
+</script>
+{% endblock %}

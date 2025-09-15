@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white text-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-x-circle-fill"></i> 송금 실패
+                </h4>
+            </div>
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>
+                </div>
+                
+                <h3 class="text-danger mb-4">송금 처리 중 오류가 발생했습니다</h3>
+                
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    {% if error_message %}
+                        {{ error_message }}
+                    {% else %}
+                        송금 처리 중 예기치 못한 오류가 발생했습니다.
+                    {% endif %}
+                </div>
+
+                <!-- 오류 상세 정보 -->
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">시도한 송금 정보</h6>
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">시도일시:</div>
+                            <div class="col-8 text-start">{{ attempted_at|date:"Y-m-d H:i:s" }}</div>
+                        </div>
+                        {% if transfer_data.from_account %}
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">송금계좌:</div>
+                            <div class="col-8 text-start">{{ transfer_data.from_account }}</div>
+                        </div>
+                        {% endif %}
+                        {% if transfer_data.to_account %}
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">받는계좌:</div>
+                            <div class="col-8 text-start">{{ transfer_data.to_account }}</div>
+                        </div>
+                        {% endif %}
+                        {% if transfer_data.amount %}
+                        <div class="row mb-2">
+                            <div class="col-4 text-muted text-start">송금금액:</div>
+                            <div class="col-8 text-start fw-bold">{{ transfer_data.amount|floatformat:0 }}원</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- 해결 방법 안내 -->
+                <div class="alert alert-info" role="alert">
+                    <h6><i class="bi bi-lightbulb"></i> 해결 방법</h6>
+                    <ul class="list-unstyled mb-0 text-start">
+                        <li>• 계좌 비밀번호를 다시 확인해 주세요</li>
+                        <li>• 송금 금액이 충분한지 확인해 주세요</li>
+                        <li>• 받는 계좌 정보가 정확한지 확인해 주세요</li>
+                        <li>• 네트워크 상태를 확인해 주세요</li>
+                        <li>• 문제가 지속되면 고객센터에 문의해 주세요</li>
+                    </ul>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-primary" onclick="history.back()">
+                        <i class="bi bi-arrow-left"></i> 다시 시도
+                    </button>
+                    <a href="{% url 'transfers:transfer_form' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-repeat"></i> 새로 송금하기
+                    </a>
+                    <a href="{% url 'transfers:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-house"></i> 홈으로
+                    </a>
+                </div>
+
+                <!-- 고객센터 연락처 -->
+                <div class="mt-4 pt-3 border-top">
+                    <small class="text-muted">
+                        <i class="bi bi-telephone"></i> 고객센터: 1588-0000 (24시간 운영)
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 오류 아이콘 애니메이션
+document.addEventListener('DOMContentLoaded', function() {
+    const errorIcon = document.querySelector('.bi-x-circle-fill');
+    errorIcon.style.animation = 'shake 0.6s ease-in-out';
+});
+</script>
+
+<style>
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-3px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(3px);
+    }
+}
+</style>
+{% endblock %}

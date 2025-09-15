@@ -1,24 +1,17 @@
-from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponse
-from .models import Account, TransactionAccount
-from django.db.models import OuterRef, Subquery, Sum
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from .models import Account, TransactionAccount
 from django.db.models import OuterRef, Subquery, Sum
 from .forms import AccountModelForm
-from acc_auth.models import User # User 모델의 위치에 따라 달라짐
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.hashers import make_password
 
 # Create your views here.
 def debug_request(request) :
     #request의 메서드와
     #request의 path
     #request의 META>REMOTE_ADDR를 화면에 표시하자!
-    content = f"""이것이 request가 가지고 있는 정보의 예시입니다. <br>
-        request.path = {request.path} <br>
-        request.method = {request.method} <br>
-        request.META.REMOTE_ADDR = {request.META.get('REMOTE_ADDR', 'Unknown')} <br>
-    """
+    content = f"""이것이 request가 가지고 있는 정보의 예시입니다. <br>\n        request.path = {request.path} <br>\n        request.method = {request.method} <br>\n        request.META.REMOTE_ADDR = {request.META.get('REMOTE_ADDR', 'Unknown')} <br>\n    """
     return HttpResponse(content)
 
 def account_list(request) :
@@ -57,22 +50,18 @@ def account_detail(request, pk) :
     }
     return render(request, 'manage_account/account_detail.html', context)
 
-from django.contrib.auth.hashers import make_password
-
+@login_required
 def account_create(request):
     if request.method == 'POST':
         form = AccountModelForm(request.POST)
         if form.is_valid():
             account = form.save(commit=False)
             
-            # 비밀번호를 암호화하여 저장
+            # Set the user to the currently logged-in user
+            account.acc_user_name = request.user
+            
+            # Encrypt the password
             account.acc_pw = make_password(form.cleaned_data['acc_pw'])
-
-            try:
-                temp_user = User.objects.get(pk=1)
-                account.acc_user_name = temp_user
-            except User.DoesNotExist:
-                pass
 
             account.save()
             return redirect('manage_account:account_list')
