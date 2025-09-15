@@ -151,3 +151,6 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+#로그인 url 추가
+LOGIN_URL = '/accauth/login/'

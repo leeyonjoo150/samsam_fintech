@@ -77,7 +77,7 @@ $(document).ready(function() {
         ajax: {
             url: "{% url 'financial_data:search_stock_ticker' %}",
             dataType: 'json',
-            delay: 250,
+            delay: 20,
             data: function (params) {
                 console.log('검색어:', params.term);
                 return { q: params.term };
