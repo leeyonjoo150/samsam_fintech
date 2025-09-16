@@ -78,6 +78,23 @@ class StockHoldingForm(forms.ModelForm):
                     raise forms.ValidationError("해외 주식 종목은 '달러'를 선택해야 합니다.")
                     
         return cleaned_data
+    def clean_share(self):
+        """
+        보유 수량이 0보다 큰 양수인지 검증합니다.
+        """
+        share = self.cleaned_data.get('share')
+        if share is not None and share <= 0:
+            raise forms.ValidationError("주식 수량은 0보다 커야 합니다.")
+        return share
+    
+    def clean_pur_amount(self):
+        """
+        매수가가 0보다 큰 양수인지 검증합니다.
+        """
+        pur_amount = self.cleaned_data.get('pur_amount')
+        if pur_amount is not None and pur_amount <= 0:
+            raise forms.ValidationError("매수 평균가는 0보다 커야 합니다.")
+        return pur_amount
     
 class StockAccountForm(forms.ModelForm):
     class Meta:
