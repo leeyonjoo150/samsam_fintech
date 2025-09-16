@@ -94,6 +94,11 @@ class StockContent(models.Model):
 
 class AccountBookCategory(models.Model):
     """가계부 카테고리 모델"""
+    KIND_CHOICES = [
+        ('income', '수입'),
+        ('expense', '지출'),
+    ]
+    
     CATEGORY_CHOICES = [
         ('식비', '식비'),
         ('교통/차량', '교통/차량'),
@@ -107,8 +112,20 @@ class AccountBookCategory(models.Model):
         ('경조사/회비', '경조사/회비'),
         ('부모님', '부모님'),
         ('기타', '기타'),
+        ('월급', '월급'),
+        ('부수입', '부수입'),
+        ('용돈', '용돈'),
+        ('상여', '상여'),
+        ('금융소득', '금융소득'),
     ]
     
+    cat_kind = models.CharField(
+        '카테고리 구분',
+        max_length=10,
+        choices=KIND_CHOICES,
+        default='expense'  # 기본값을 지출로 설정
+    )
+
     cat_type = models.CharField(
         '카테고리종류', 
         max_length=20, 
@@ -117,7 +134,7 @@ class AccountBookCategory(models.Model):
     created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
-        return self.cat_type + " 카테고리"
+        return f"{self.cat_type} ({self.get_cat_kind_display()})"
     
     class Meta:
         verbose_name = "가계부카테고리"
@@ -178,6 +195,8 @@ class TransactionCash(models.Model):
     use_date = models.DateTimeField('사용날짜', default=timezone.now)
     cash_balance = models.IntegerField('잔액')
     cash_cont = models.CharField('내용', max_length=300, null=True, blank=True)
+    memo = models.TextField('메모', null=True, blank=True)
+    photo = models.ImageField('사진', upload_to='photos/%Y/%m/%d/', null=True, blank=True)
     cash_cat = models.ForeignKey(
         AccountBookCategory,
         on_delete=models.SET_NULL,

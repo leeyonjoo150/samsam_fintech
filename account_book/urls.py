@@ -1,7 +1,11 @@
 from django.urls import path
-#원하는 뷰를 가져오는 형태
+from . import views
 
-app_name = 'account_book'
+app_name = "account_book"
 
 urlpatterns = [
+    path("", views.home, name="home"),  # 홈
+    path("save_transaction/", views.save_transaction, name="save_transaction"),
+    path("delete_transactions/", views.delete_transactions, name="delete_transactions"),
+    path("save_bulk_transactions/", views.save_bulk_transactions, name="save_bulk_transactions"),
 ]
