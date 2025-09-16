@@ -206,7 +206,7 @@ def save_bulk_transactions(request):
                 category = None
                 if category_name:
                     try:
-                        category = AccountBookCategory.objects.get(cat_type=category_name, cat_kind=kind)
+                        category = AccountBookCategory.objects.filter(cat_type=category_name, cat_kind=kind).first()
                     except AccountBookCategory.DoesNotExist:
                         pass
 
