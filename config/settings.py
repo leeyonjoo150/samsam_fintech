@@ -143,3 +143,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Google Maps API Key
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY')
+
+#주식 현재가 검색 캐시
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+#로그인 url 추가
+LOGIN_URL = '/accauth/login/'

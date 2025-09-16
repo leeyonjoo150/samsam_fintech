@@ -2,6 +2,8 @@ import FinanceDataReader as fdr
 from django.shortcuts import render,redirect
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.db.models import Q # 검색을 위해 Q 객체를 import 합니다.
 from .forms import StockHoldingForm, StockAccountForm, SearchForm
 from manage_account.models import StockContent, StockAccount
 from django.db.models import Sum, F
@@ -9,6 +11,88 @@ from django.contrib import messages
 from django.db import IntegrityError
 import math
 import random
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
+from django.core.cache import cache
+
+# 전역 변수로 종목 리스트 캐시.
+# 서버가 시작될 때 데이터를 한 번만 로드하여 효율성을 높입니다.
+# 오류 방지를 위해 try-except 블록을 사용합니다.
+def load_stock_listings():
+    # 캐시에서 'stock_listings' 데이터를 가져옵니다.
+    listings = cache.get('stock_listings')
+    if listings:
+        print("종목 목록을 캐시에서 로드했습니다.")
+        return listings
+        
+    print("종목 목록을 API에서 로드합니다.")
+    listings = {}
+    try:
+        listings['KRX'] = fdr.StockListing('KRX')
+    except Exception as e:
+        print(f"KRX 종목 목록 로드 중 오류 발생: {e}")
+        listings['KRX'] = pd.DataFrame()
+    # ... (기존 NASDAQ, NYSE, AMEX 로직 동일) ...
+    try:
+        listings['NASDAQ'] = fdr.StockListing('NASDAQ')
+    except Exception as e:
+        print(f"NASDAQ 종목 목록 로드 중 오류 발생: {e}")
+        listings['NASDAQ'] = pd.DataFrame()
+
+    try:
+        listings['NYSE'] = fdr.StockListing('NYSE')
+    except Exception as e:
+        print(f"NYSE 종목 목록 로드 중 오류 발생: {e}")
+        listings['NYSE'] = pd.DataFrame()
+
+    try:
+        listings['AMEX'] = fdr.StockListing('AMEX')
+        print("AMEX 종목 목록을 성공적으로 로드했습니다.")
+    except Exception as e:
+        print(f"AMEX 종목 목록 로드 중 오류 발생: {e}")
+        listings['AMEX'] = pd.DataFrame()
+
+    # 캐시에 저장합니다. (예: 1일 = 86400초)
+    # 캐시는 서버 재시작 시 초기화됩니다.
+    cache.set('stock_listings', listings, 60*60*24)
+    return listings
+
+STOCK_LISTINGS = load_stock_listings()
+
+
+def get_company_name(ticker_code):
+    """
+    주어진 종목 코드에 해당하는 회사 이름을 캐시된 데이터에서 빠르게 조회합니다.
+    """
+    # 한국 주식 (KRX)에서 먼저 찾기
+    kor_stocks = STOCK_LISTINGS.get('KRX')
+    if not kor_stocks.empty and 'Code' in kor_stocks.columns:
+        matched_kor = kor_stocks[kor_stocks['Code'] == ticker_code]
+        if not matched_kor.empty and 'Name' in matched_kor.columns:
+            return matched_kor['Name'].iloc[0]
+
+    # 미국 주식 (NASDAQ, NYSE, AMEX)에서 찾기
+    for exchange in ['NASDAQ', 'NYSE', 'AMEX']:
+        stocks = STOCK_LISTINGS.get(exchange)
+        if not stocks.empty and 'Symbol' in stocks.columns:
+            matched_stock = stocks[stocks['Symbol'] == ticker_code]
+            if not matched_stock.empty and 'Name' in matched_stock.columns:
+                return matched_stock['Name'].iloc[0]
+
+    return "이름 없음"
+
+# 병렬 처리를 위한 헬퍼 함수
+def fetch_stock_data(ticker):
+    """
+    단일 종목 코드로 주식 데이터를 가져오는 함수.
+    """
+    try:
+        df = fdr.DataReader(ticker)
+        if not df.empty:
+            return ticker, df.iloc[-1]
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {e}")
+    return ticker, None
 
 @login_required
 def my_stock_holdings(request):
@@ -17,61 +101,68 @@ def my_stock_holdings(request):
     """
     user = request.user
     
-    # 사용자의 모든 주식 계좌를 가져옵니다.
     stock_accounts = StockAccount.objects.filter(st_user_id=user)
     
-    holding_data_with_prices = []
+    # 사용자가 보유한 모든 종목을 가져옵니다.
+    holdings = StockContent.objects.filter(st_id__in=stock_accounts).select_related('st_id')
     
-    # 통화별 합계 계산을 위한 딕셔너리 초기화
+    holding_data_with_prices = []
     total_by_currency = {
         '원화': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
         '달러': {'purchase_amount': 0, 'current_value': 0, 'profit_loss': 0, 'profit_rate': 0},
     }
 
-    # 각 계좌의 주식 보유 내역을 순회하며 데이터 처리
-    for account in stock_accounts:
-        # 해당 계좌에 연결된 모든 주식 보유 내역을 가져옵니다.
-        holdings = StockContent.objects.filter(st_id=account)
-        
-        for holding in holdings:
-            ticker = holding.ticker_code
-            currency = holding.currency
-            try:
-                # FinanceDataReader를 사용하여 실시간 주식 데이터 조회
-                df = fdr.DataReader(ticker)
-                if not df.empty:
-                    latest_price = df.iloc[-1]['Close']
-                    if not math.isnan(latest_price):
-                        # 총 평가액 계산
-                        total_value = latest_price * holding.share
-                        
-                        # 총 매수 금액 계산 (보유량 * 매수가)
-                        total_purchase_amount = holding.pur_amount * holding.share
-                        
-                        # 수익률 계산: (총 평가액 - 총 매수 금액) / 총 매수 금액 * 100
-                        profit_rate = 0
-                        if total_purchase_amount != 0:
-                            profit_rate = ((total_value - total_purchase_amount) / total_purchase_amount) * 100
-    
-                        holding_data_with_prices.append({
-                            'account_info': account, # 계좌 정보를 추가합니다.
-                            'ticker_code': ticker,
-                            'share': holding.share,
-                            'purchase_amount': holding.pur_amount,
-                            'currency': currency,
-                            'current_price': round(latest_price, 2),
-                            'total_value': round(total_value, 2),
-                            'profit_rate': round(profit_rate, 2)
-                        })
-                        # 합계 딕셔너리에 값 추가
-                        if currency in total_by_currency:
-                            total_by_currency[currency]['purchase_amount'] += total_purchase_amount
-                            total_by_currency[currency]['current_value'] += total_value
-            except Exception as e:
-                print(f"Error fetching data for {ticker}: {e}")
-                continue
+    # 보유 종목의 고유한 종목 코드 목록을 생성합니다.
+    unique_tickers = list(holdings.values_list('ticker_code', flat=True).distinct())
 
-    # 딕셔너리에 저장된 각 통화별 합계 수익률 계산
+    # 병렬 처리를 사용하여 모든 종목 데이터를 동시에 가져옵니다.
+    # 최대 워커 수를 10으로 설정하여 동시에 10개의 API 호출을 처리합니다.
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # map 함수는 각 ticker에 대해 fetch_stock_data 함수를 병렬로 실행합니다.
+        # 결과는 제출된 순서대로 반환됩니다.
+        price_data = list(executor.map(fetch_stock_data, unique_tickers))
+
+    # 가져온 가격 데이터를 딕셔너리 형태로 변환하여 빠른 조회를 가능하게 합니다.
+    price_dict = {ticker: data for ticker, data in price_data if data is not None}
+    
+    # 각 보유 종목에 대해 가격 데이터를 합칩니다.
+    for holding in holdings:
+        ticker = holding.ticker_code
+        currency = holding.currency
+        company_name = get_company_name(ticker)
+        
+        latest_price = None
+        total_value = None
+        profit_rate = None
+        
+        if ticker in price_dict:
+            latest_price_series = price_dict[ticker]
+            latest_price = latest_price_series.get('Close')
+            
+            if latest_price is not None and not math.isnan(latest_price):
+                total_value = latest_price * holding.share
+                total_purchase_amount = holding.pur_amount * holding.share
+                
+                profit_rate = 0
+                if total_purchase_amount != 0:
+                    profit_rate = ((total_value - total_purchase_amount) / total_purchase_amount) * 100
+
+                if currency in total_by_currency:
+                    total_by_currency[currency]['purchase_amount'] += total_purchase_amount
+                    total_by_currency[currency]['current_value'] += total_value
+
+        holding_data_with_prices.append({
+            'account_info': holding.st_id,
+            'ticker_code': ticker,
+            'company_name': company_name,
+            'share': holding.share,
+            'purchase_amount': holding.pur_amount,
+            'currency': currency,
+            'current_price': round(latest_price, 2) if latest_price is not None else 'N/A',
+            'total_value': round(total_value, 2) if total_value is not None else 'N/A',
+            'profit_rate': round(profit_rate, 2) if profit_rate is not None else 'N/A'
+        })
+    
     for currency, totals in total_by_currency.items():
         if totals['purchase_amount'] != 0:
             totals['profit_loss'] = totals['current_value'] - totals['purchase_amount']
@@ -91,7 +182,7 @@ def add_stock_holding(request):
     user_accounts = StockAccount.objects.filter(st_user_id=user)
     if not user_accounts.exists():
         messages.error(request, '주식 계좌가 없어 보유 종목을 추가할 수 없습니다. 먼저 계좌를 등록해주세요.')
-        return redirect('manage_account:add_stock_account')
+        return redirect('financial_data:add_stock_account')
 
     if request.method == 'POST':
         form = StockHoldingForm(request.POST, user=user) # 폼에 user 객체를 전달합니다.
@@ -160,29 +251,31 @@ def add_stock_account(request):
     return render(request, 'financial_data/add_stock_account.html', context)
 
 def search_data(request):
-    """
-    사용자 입력에 따라 금융 데이터를 검색하고 결과를 반환하는 뷰
-    """
     form = SearchForm(request.GET or None)
     results = None
     query = None
     
-    # 검색창 위에 보여줄 주요 지표 및 환율 데이터
-    market_data_tickers = ['KS11', 'IXIC', 'US10YT', 'USD/KRW', 'EUR/KRW']
-    market_data = []
+    # 캐시에서 'market_data'를 먼저 가져옵니다.
+    market_data = cache.get('market_data')
+    if not market_data:
+        # 캐시가 없으면 API를 호출하여 데이터를 가져옵니다.
+        market_data_tickers = ['KS11', 'IXIC', 'US10YT', 'USD/KRW', 'EUR/KRW']
+        market_data = []
 
-    for ticker in market_data_tickers:
-        try:
-            df = fdr.DataReader(ticker)
-            if not df.empty and 'Close' in df.columns:
-                latest_price = df.iloc[-1]['Close']
-                market_data.append({
-                    'name': ticker,
-                    'price': f'{latest_price:,.2f}'
-                })
-        except Exception as e:
-            print(f"Error fetching data for {ticker}: {e}")
-            continue
+        for ticker in market_data_tickers:
+            try:
+                df = fdr.DataReader(ticker)
+                if not df.empty and 'Close' in df.columns:
+                    latest_price = df.iloc[-1]['Close']
+                    market_data.append({
+                        'name': ticker,
+                        'price': f'{latest_price:,.2f}'
+                    })
+            except Exception as e:
+                print(f"Error fetching data for {ticker}: {e}")
+                continue
+        # 데이터를 캐시에 저장합니다. (예: 10분 = 600초)
+        cache.set('market_data', market_data, 600)
 
     if form.is_valid():
         query = form.cleaned_data.get('query')
@@ -267,10 +360,18 @@ def search_data(request):
     }
     return render(request, 'financial_data/search.html', context)
 
+def refresh_stock_cache(request):
+    """
+    주요 지수 및 종목 목록 캐시를 수동으로 삭제하는 뷰
+    """
+    cache.delete('stock_listings')
+    cache.delete('market_data')
+    messages.success(request, '데이터가 성공적으로 갱신되었습니다.')
+    return redirect('financial_data:search_data')
 
 # GeoGuessr 게임 뷰
 def geoguessr_game(request):
-    # 게임에 사용할 장소 목록 (예시)
+    # 게임에 사용할 장소 목록
     locations = [
         {
             'name': '멋쟁이 사자처럼',
@@ -298,7 +399,104 @@ def geoguessr_game(request):
     random_location = random.choice(locations)
 
     context = {
+        # Maps Platform API Key - API 제한사항 Street View Static API, Maps JavaScript API 허용하고 사용
         'api_key': settings.GOOGLE_MAPS_API_KEY,
         'start_location': random_location,
     }
     return render(request, 'financial_data/geoguessr_game.html', context)
+
+
+
+# 자동 완성 기능 구현 시도중
+
+def search_stock_ticker(request):
+    """
+    주식 종목을 검색하여 JSON 응답을 반환하는 뷰
+    """
+    query = request.GET.get('q', '').strip()
+    results = []
+
+    if query:
+        # FinanceDataReader를 사용하여 종목 목록 캐시를 가져옵니다.
+        kor_stocks = STOCK_LISTINGS.get('KRX')
+        us_stocks = pd.concat([STOCK_LISTINGS.get('NASDAQ'), STOCK_LISTINGS.get('NYSE'), STOCK_LISTINGS.get('AMEX')])
+
+        # 한글 또는 영문 검색어에 따라 필터링
+        # 한국 주식 검색 (Code와 Name을 모두 검사)
+        if not kor_stocks.empty:
+            matched_kor = kor_stocks[
+                kor_stocks['Code'].str.contains(query, case=False, na=False) |
+                kor_stocks['Name'].str.contains(query, case=False, na=False)
+            ]
+            for _, row in matched_kor.iterrows():
+                results.append({
+                    'id': row['Code'],
+                    'text': f"{row['Name']} ({row['Code']})"
+                })
+
+        # 미국 주식 검색 (Symbol과 Name을 모두 검사)
+        if not us_stocks.empty:
+            matched_us = us_stocks[
+                us_stocks['Symbol'].str.contains(query, case=False, na=False) |
+                us_stocks['Name'].str.contains(query, case=False, na=False)
+            ]
+            for _, row in matched_us.iterrows():
+                results.append({
+                    'id': row['Symbol'],
+                    'text': f"{row['Name']} ({row['Symbol']})"
+                })
+        
+    # 결과 개수 제한
+    return JsonResponse({'results': results[:20]}, safe=False)
+
+@login_required
+def add_stock_holding_new(request):
+    user = request.user
+    
+    # 사용자의 주식 계좌를 가져옵니다.
+    user_accounts = StockAccount.objects.filter(st_user_id=user)
+    if not user_accounts.exists():
+        messages.error(request, '주식 계좌가 없어 보유 종목을 추가할 수 없습니다. 먼저 계좌를 등록해주세요.')
+        return redirect('financial_data:add_stock_account')
+
+    if request.method == 'POST':
+        form = StockHoldingForm(request.POST, user=user) # 폼에 user 객체를 전달합니다.
+        if form.is_valid():
+            new_ticker_code = form.cleaned_data['ticker_code']
+            new_share = form.cleaned_data['share']
+            new_pur_amount = form.cleaned_data['pur_amount']
+            new_currency = form.cleaned_data['currency']
+            stock_account = form.cleaned_data['st_id'] # 선택된 계좌 객체를 가져옵니다.
+
+            existing_holding = StockContent.objects.filter(
+                st_id=stock_account,
+                ticker_code=new_ticker_code,
+                currency=new_currency
+            ).first()
+
+            if existing_holding:
+                total_value = (existing_holding.pur_amount * existing_holding.share) + (new_pur_amount * new_share)
+                total_share = existing_holding.share + new_share
+                
+                new_avg_pur_amount = total_value / total_share
+                
+                existing_holding.pur_amount = new_avg_pur_amount
+                existing_holding.share = total_share
+                existing_holding.save()
+                messages.success(request, f'{new_ticker_code} 종목이 기존 계좌에 성공적으로 추가되었습니다.')
+            else:
+                holding = form.save(commit=False)
+                holding.st_id = stock_account
+                holding.save()
+                messages.success(request, f'{new_ticker_code} 종목이 성공적으로 추가되었습니다.')
+            
+            return redirect('financial_data:my_stock_holdings')
+    else:
+        form = StockHoldingForm(user=user) # GET 요청에도 user 객체를 전달합니다.
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'financial_data/add_holding_new.html', context) # 이 부분을 수정
+
+# 여기까지가 자동완성 기능 
