@@ -132,3 +132,145 @@ function clearAllSelections() {
     if (headerCheckbox) headerCheckbox.checked = false;
     rowCheckboxes.forEach(cb => cb.checked = false);
 }
+
+// Search functionality
+document.addEventListener("DOMContentLoaded", () => {
+    const toggleSearchBtn = document.getElementById("toggle-search-btn");
+    const dateNavigationArea = document.getElementById("date-navigation-area");
+    const searchFormArea = document.getElementById("search-form-area");
+
+    const searchStartDateInput = document.getElementById("search-start-date-input");
+    const searchEndDateInput = document.getElementById("search-end-date-input");
+    const searchExpenseBtn = document.getElementById("search-expense-btn");
+    const searchIncomeBtn = document.getElementById("search-income-btn");
+    const searchAmountInput = document.getElementById("search-amount-input");
+    const searchResetBtn = document.getElementById("search-reset-btn");
+    const executeSearchBtn = document.getElementById("execute-search-btn");
+
+    const searchCategorySelect = document.getElementById("search-category-select");
+    let selectedSearchType = null; // To store 'income' or 'expense'
+
+    // Function to fetch categories from Django backend
+    async function fetchCategories(type) {
+        try {
+            const response = await fetch(`/accbook/get_categories/?type=${type}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data.categories;
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+            return [];
+        }
+    }
+
+    // Function to render categories in the dropdown
+    function renderCategoryDropdown(categories) {
+        searchCategorySelect.innerHTML = '<option value="">-- 카테고리 --</option>'; // Clear existing options
+        categories.forEach(category => {
+            const option = document.createElement("option");
+            option.value = category.id; // Assuming category object has an 'id' and 'name'
+            option.textContent = category.name;
+            searchCategorySelect.appendChild(option);
+        });
+    }
+
+    // Function to toggle visibility of date navigation and search form
+    function toggleSearchForm() {
+        if (dateNavigationArea.style.display !== "none") {
+            dateNavigationArea.style.display = "none";
+            searchFormArea.style.display = "flex"; // Use flex to maintain layout
+        } else {
+            dateNavigationArea.style.display = "flex";
+            searchFormArea.style.display = "none";
+        }
+    }
+
+    // Event listener for search icon
+    if (toggleSearchBtn) {
+        toggleSearchBtn.addEventListener("click", toggleSearchForm);
+    }
+
+    // Event listener for date range container to open start date picker
+    const searchFormControls = document.querySelector(".search-form-controls");
+    if (searchFormControls) {
+        searchFormControls.addEventListener("click", () => {
+            if (searchStartDateInput && searchStartDateInput.showPicker) {
+                searchStartDateInput.showPicker();
+            } else if (searchStartDateInput) {
+                searchStartDateInput.click(); // Fallback for browsers without showPicker
+            } 
+        });
+    }
+
+    // Event listeners for filter buttons (지출, 수입)
+    if (searchExpenseBtn) {
+        searchExpenseBtn.addEventListener("click", async () => {
+            searchExpenseBtn.classList.toggle("active");
+            searchIncomeBtn.classList.remove("active");
+            selectedSearchType = searchExpenseBtn.classList.contains("active") ? "expense" : null;
+
+            if (selectedSearchType) {
+                const categories = await fetchCategories(selectedSearchType);
+                renderCategoryDropdown(categories);
+                searchCategorySelect.style.display = 'block'; // Show dropdown
+            } else {
+                searchCategorySelect.style.display = 'none'; // Hide dropdown
+                searchCategorySelect.value = ""; // Reset selected value
+            }
+        });
+    }
+
+    if (searchIncomeBtn) {
+        searchIncomeBtn.addEventListener("click", async () => {
+            searchIncomeBtn.classList.toggle("active");
+            searchExpenseBtn.classList.remove("active");
+            selectedSearchType = searchIncomeBtn.classList.contains("active") ? "income" : null;
+
+            if (selectedSearchType) {
+                const categories = await fetchCategories(selectedSearchType);
+                renderCategoryDropdown(categories);
+                searchCategorySelect.style.display = 'block'; // Show dropdown
+            } else {
+                searchCategorySelect.style.display = 'none'; // Hide dropdown
+                searchCategorySelect.value = ""; // Reset selected value
+            }
+        });
+    }
+
+    // Event listener for Reset button
+    if (searchResetBtn) {
+        searchResetBtn.addEventListener("click", () => {
+            searchStartDateInput.value = "";
+            searchEndDateInput.value = "";
+            searchAmountInput.value = "";
+            searchExpenseBtn.classList.remove("active");
+            searchIncomeBtn.classList.remove("active");
+            selectedSearchType = null;
+            searchCategorySelect.style.display = 'none'; // Hide dropdown
+            searchCategorySelect.value = ""; // Reset selected value
+            console.log("Search form reset.");
+            // Optionally, hide search results and show all transactions
+        });
+    }
+
+    // Event listener for Execute Search button
+    if (executeSearchBtn) {
+        executeSearchBtn.addEventListener("click", () => {
+            const startDate = searchStartDateInput.value;
+            const endDate = searchEndDateInput.value;
+            const amount = searchAmountInput.value;
+
+            console.log("Executing search with:");
+            console.log("Start Date:", startDate);
+            console.log("End Date:", endDate);
+            console.log("Type:", selectedSearchType);
+            console.log("Amount:", amount);
+
+            // Here you would typically make an AJAX request to your Django backend
+            // to filter transactions based on these criteria.
+            // For now, it just logs the values.
+        });
+    }
+});

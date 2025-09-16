@@ -10,13 +10,47 @@
     <link rel="stylesheet" href="{% static 'account_book/css/panel.css' %}">
     <link rel="stylesheet" href="{% static 'account_book/css/downpanel.css' %}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+    .search-results-container {
+        display: none; /* Initially hidden */
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .search-summary {
+        display: flex;
+        flex-direction: column;
+    }
+    .search-results-text {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    .search-period {
+        font-size: 0.9em;
+        color: #666;
+    }
+    .search-filters .filter-btn {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        padding: 5px 15px;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    .search-filters .filter-btn:hover {
+        background-color: #e0e0e0;
+    }
+</style>
 </head>
 
 <body>
     <div class="header">
         <div class="header-title">
             <span class="material-icons">account_balance_wallet</span>
-            <span>삼삼 가계부</span>
+            <span>삼삼 핀테크</span>
         </div>
         <div class="header-controls">
             <span class="material-icons header-icon">person</span>
@@ -38,13 +72,30 @@
         <!-- 날짜 -->
         <div class="main-content">
             <div class="content-header">
-                <div class="date-navigation">
+                <div class="date-navigation" id="date-navigation-area">
                     <button class="date-navigation-button" onclick="changeDate(-1)">&lt;</button>
                     <input type="date" id="datePicker" class="date-display">
                     <button class="date-navigation-button" onclick="changeDate(1)">&gt;</button>
                 </div>
+                <div id="search-form-area" style="display: none;">
+                    <div class="search-form-controls">
+                        <input type="date" id="search-start-date-input" class="search-date-input">
+                        <span>~</span>
+                        <input type="date" id="search-end-date-input" class="search-date-input">
+                    </div>
+                    <div class="search-form-buttons">
+                        <button id="search-expense-btn" class="search-filter-btn">지출</button>
+                        <button id="search-income-btn" class="search-filter-btn">수입</button>
+                        <input type="number" id="search-amount-input" class="search-amount-input" placeholder="금액">
+                        <select id="search-category-select" class="search-category-select" style="display: none;">
+                            <option value="">-- 카테고리 --</option>
+                        </select>
+                        <button id="search-reset-btn" class="search-action-btn">초기화</button>
+                        <button id="execute-search-btn" class="search-action-btn">검색</button>
+                    </div>
+                </div>
                 <div class="header-right-icons">
-                    <span class="material-icons search-icon">search</span>
+                    <span class="material-icons search-icon" id="toggle-search-btn">search</span>
                     <svg xmlns="http://www.w3.org/2000/svg" 
                         width="24" height="24" 
                         viewBox="0 0 24 24" 
@@ -52,6 +103,19 @@
                         <rect width="24" height="24" fill="#21A366" rx="4"/>
                         <path d="M7 7h3v2H7v6h3v2H7v2H5V5h2v2zM11 9h2v6h-2zM15 9h2v6h-2z" fill="white"/>
                     </svg>      
+                </div>
+            </div>
+            <!-- 검색 결과 -->
+            <div class="search-results-container">
+                <div class="search-summary">
+                    <div class="search-results-text">검색결과 : <span id="search-count">n</span>건</div>
+                    <div class="search-period">기간 <span id="search-start-date">년.월.일</span> ~ <span id="search-end-date">년.월.일</span></div>
+                </div>
+                <div class="search-filters">
+                    <button class="filter-btn">자산</button>
+                    <button class="filter-btn">지출</button>
+                    <button class="filter-btn">수입</button>
+                    <button class="filter-btn">금액</button>
                 </div>
             </div>
     <!-- 메인 콘텐츠 박스 -->
@@ -106,7 +170,7 @@
                 </thead>
                 <tbody id="record-list">
                     {% for transaction in transactions %}
-                    <tr data-id="{{ transaction.id }}">
+                    <tr>
                         <td><input type="checkbox" data-id="{{ transaction.id }}"></td>
                         <td>{{ transaction.use_date|date:"Y-m-d" }}</td>
                         <td>{{ transaction.cash_side }}</td>
@@ -177,7 +241,7 @@
                             </td>    
                             <!-- C열 (날짜) -->
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <!-- D열 (자산종류) -->
@@ -198,7 +262,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>2</th>
@@ -210,7 +274,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -229,7 +293,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>3</th>
@@ -241,7 +305,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -260,7 +324,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>4</th>
@@ -272,7 +336,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -291,7 +355,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>5</th>
@@ -303,7 +367,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -322,7 +386,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>6</th>
@@ -334,7 +398,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -353,7 +417,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>7</th>
@@ -365,7 +429,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -384,7 +448,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>8</th>
@@ -396,7 +460,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -415,7 +479,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>9</th>
@@ -427,7 +491,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -446,7 +510,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>
                         <tr>
                             <th>10</th>
@@ -458,7 +522,7 @@
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="text" class="bulk-date-input">
+                                <input type="text" class="date-input">
                                 
                             </td>
                             <td>
@@ -477,7 +541,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row-btn">×</button></td>
+                            <td><button class="delete-row">×</button></td>
                         </tr>                                                
                     </tbody>
                 </table>

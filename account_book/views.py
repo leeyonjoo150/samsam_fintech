@@ -6,6 +6,18 @@ from django.utils import timezone
 from django.db.models import Sum, OuterRef, Subquery
 from django.http import JsonResponse
 import json
+from django.contrib.auth.decorators import login_required
+
+def get_categories_json(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    category_type = request.GET.get('type')
+    categories = []
+    if category_type in ['income', 'expense']:
+        filtered_categories = AccountBookCategory.objects.filter(cat_kind=category_type).order_by('cat_type')
+        categories = [{'id': category.id, 'name': category.cat_type} for category in filtered_categories]
+    return JsonResponse({'categories': categories})
 from django.db import transaction
 from datetime import datetime
 
@@ -234,3 +246,12 @@ def save_bulk_transactions(request):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+    # @login_required  # 이 줄 주석 처리!
+def get_categories_json(request):
+    category_type = request.GET.get('type')
+    categories = []
+    if category_type in ['income', 'expense']:
+        filtered_categories = AccountBookCategory.objects.filter(cat_kind=category_type).order_by('cat_type')
+        categories = [{'id': category.id, 'name': category.cat_type} for category in filtered_categories]
+    return JsonResponse({'categories': categories})
