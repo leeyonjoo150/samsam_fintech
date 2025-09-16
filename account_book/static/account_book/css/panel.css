@@ -19,7 +19,7 @@
 }
 
 /* 닫기 버튼 */
-.close-button {
+.input-panel .close-button {
     position: absolute;
     top: 10px;
     left: 10px;   /* 👉 왼쪽 맨 위 구석 */
@@ -32,12 +32,12 @@
     z-index: 1100; /* 패널 안에서도 항상 위 */
 }
 
-.close-button:hover {
+.input-panel .close-button:hover {
     color: #9f67ff; /* hover 시 보라빛 */
 }
 
 /* 닫기 버튼 */
-.close-button {
+.input-panel .close-button {
     position: absolute;
     top: 12px;
     left: 12px;
@@ -55,7 +55,7 @@
     z-index: 2000;
 }
 
-.close-button:hover {
+.input-panel .close-button:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #9f67ff; /* hover 시 보라빛 강조 */
 }
@@ -80,7 +80,7 @@
 }
 
 /* 패널 닫기 버튼 */
-.close-button:hover {
+.input-panel .close-button:hover {
     color: #ff4b4b;
 }
 

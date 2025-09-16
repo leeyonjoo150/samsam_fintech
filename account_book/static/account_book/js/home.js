@@ -113,6 +113,7 @@ function deleteSelectedRecords() {
                 if (row) row.remove();
             });
             alert("선택된 항목이 삭제되었습니다.");
+            clearAllSelections();
         } else {
             alert("삭제 중 오류가 발생했습니다.");
         }

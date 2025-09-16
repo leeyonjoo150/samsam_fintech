@@ -94,6 +94,7 @@ class StockContent(models.Model):
 
 class AccountBookCategory(models.Model):
     """가계부 카테고리 모델"""
+ 
     CATEGORY_CHOICES = [
         ('식비', '식비'),
         ('교통/차량', '교통/차량'),
@@ -113,12 +114,13 @@ class AccountBookCategory(models.Model):
         ('상여', '상여'),
         ('금융소득', '금융소득'),
     ]
-
+    
     cat_type = models.CharField(
         '카테고리종류',
         max_length=20,
         choices=CATEGORY_CHOICES
     )
+
     cat_kind = models.CharField(
         '카테고리 구분',
         max_length=10,
@@ -126,10 +128,10 @@ class AccountBookCategory(models.Model):
         default='expense'
     )
     created_at = models.DateTimeField('생성일', default=timezone.now)
-
+    
     def __str__(self):
         return self.cat_type + " 카테고리"
-
+    
     class Meta:
         verbose_name = "가계부카테고리"
         verbose_name_plural = "가계부카테고리 목록"

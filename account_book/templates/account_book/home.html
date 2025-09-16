@@ -106,7 +106,7 @@
                 </thead>
                 <tbody id="record-list">
                     {% for transaction in transactions %}
-                    <tr>
+                    <tr data-id="{{ transaction.id }}">
                         <td><input type="checkbox" data-id="{{ transaction.id }}"></td>
                         <td>{{ transaction.use_date|date:"Y-m-d" }}</td>
                         <td>{{ transaction.cash_side }}</td>
@@ -169,7 +169,7 @@
                         <tr>
                             <th>1</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
@@ -177,14 +177,8 @@
                             </td>    
                             <!-- C열 (날짜) -->
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <!-- D열 (자산종류) -->
                             <td>
@@ -204,26 +198,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>2</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -235,32 +223,26 @@
                             </td>
                             <td>
                             <select class="category-select">
-                                <option value="">-분류--</option>
+                                <option value="">--분류--</option>
                             </select>
                             </td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>3</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -278,26 +260,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>4</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -315,26 +291,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>5</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -352,26 +322,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>6</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -389,26 +353,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>7</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -426,26 +384,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>8</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -463,26 +415,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>9</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -500,26 +446,20 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>
                         <tr>
                             <th>10</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
@@ -537,7 +477,7 @@
                             <td><input type="text"></td>
                             <td><input type="text"></td>
                             <td><input type="text"></td>
-                            <td><button class="delete-row">×</button></td>
+                            <td><button class="delete-row-btn">×</button></td>
                         </tr>                                                
                     </tbody>
                 </table>

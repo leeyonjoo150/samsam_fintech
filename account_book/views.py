@@ -7,6 +7,7 @@ from django.db.models import Sum, OuterRef, Subquery
 from django.http import JsonResponse
 import json
 from django.db import transaction
+from datetime import datetime
 
 
 User = get_user_model()
@@ -181,11 +182,21 @@ def save_bulk_transactions(request):
             for item in transactions_data:
                 cash_side = item.get('type')
                 cash_amount_str = item.get('amount')
-                use_date = item.get('date')
+                use_date_str = item.get('date')
                 
                 # 단건 입력 패널의 유효성 검사와 동일하게, 타입, 금액, 날짜가 모두 있어야 함
-                if not all([cash_side, cash_amount_str, use_date]):
+                if not all([cash_side, cash_amount_str, use_date_str]):
                     continue
+
+                # Parse the date string into a datetime object
+                parsed_date = None
+                if use_date_str:
+                    try:
+                        # Assuming YYYY-MM-DD format from frontend
+                        parsed_date = datetime.strptime(use_date_str, '%Y-%m-%d')
+                    except ValueError:
+                        # Handle invalid date format if necessary, e.g., skip or return error
+                        continue # Skip this transaction if date format is invalid
 
                 try:
                     cash_amount = int(cash_amount_str)
@@ -206,13 +217,13 @@ def save_bulk_transactions(request):
                 category = None
                 if category_name:
                     try:
-                        category = AccountBookCategory.objects.get(cat_type=category_name, cat_kind=kind)
+                        category = AccountBookCategory.objects.filter(cat_type=category_name, cat_kind=kind).first()
                     except AccountBookCategory.DoesNotExist:
                         pass
 
                 TransactionCash.objects.create(
                     cash_user=user,
-                    use_date=use_date,
+                    use_date=parsed_date,
                     cash_side=cash_side,
                     cash_cat=category,
                     cash_amount=cash_amount,

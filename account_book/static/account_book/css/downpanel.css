@@ -162,22 +162,7 @@
     box-sizing: border-box;
     text-align: center;
     font-size: 14px;
-}
-
-.excel-table td input:focus {
-    outline: none;
-    background-color: #1e103a;
-}
-
-/* 활성화된 셀 스타일 */
-.excel-table td.active {
-    outline: 2px solid #a98dce; 
-    outline-offset: -2px;
-}
-
-/* 선택된 셀들 스타일 */
-.excel-table td.selected {
-    background-color: rgba(169, 141, 206, 0.2); /* 반투명 보라색 */
+    cursor: text;
 }
 
 /* 드래그 핸들 스타일 */
@@ -196,6 +181,24 @@
 .excel-table td.active .fill-handle {
     display: block; /* 활성화된 셀에서만 표시 */
 }
+
+.excel-table td input:focus {
+    outline: none;
+    background-color: #1e103a;
+}
+
+/* 활성화된 셀 스타일 */
+.excel-table td.active {
+    outline: 2px solid #a98dce; 
+    outline-offset: -2px;
+}
+
+/* 선택된 셀들 스타일 */
+.excel-table td.selected {
+    background-color: rgba(169, 141, 206, 0.2); /* 반투명 보라색 */
+}
+
+
 
 /* 기본 select */
 .excel-table select {
@@ -219,43 +222,7 @@
     color: #ff6666; /* 밝은 빨간색 */
 }
 
-.date-cell {
-    position: relative;
-}
-
-.date-input {
-    width: 100%;
-    height: 100%;
-    background-color: transparent;
-    border: none;
-    color: white;
-    padding: 8px;
-    font-size: 14px;
-    text-align: center;
-    box-sizing: border-box;
-}
-
-/* 기본 달력 아이콘 숨기기 (브라우저 기본 아이콘 제거) */
-.date-input::-webkit-calendar-picker-indicator {
-    display: none;
-    -webkit-appearance: none;
-}
-
-/* 커스텀 아이콘 */
-.calendar-icon {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    font-size: 16px;
-    display: none; /* 기본은 안 보이게 */
-}
-
-/* 금액란 입력색 */
-.date-cell:hover .calendar-icon {
-    display: inline;
-}
+/* Date cell styles are no longer needed, handled by generic input styles */
 
 .income {
   color: blue;
