@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         icon.addEventListener("click", () => {
             const input = icon.previousElementSibling; // 바로 앞의 input[type=date]
             if (!input) return;
-            input.showPicker ? input.showPicker() : input.click();
+            input.click(); // Change this to directly click the input
         });
     });
 

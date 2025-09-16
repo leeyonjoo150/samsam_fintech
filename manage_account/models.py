@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from acc_auth.models import User
 from django.conf import settings
 import os
@@ -30,7 +31,7 @@ class Account(models.Model):
         related_name='accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.acc_bank} {self.acc_num} ({self.acc_user_name})"
@@ -52,7 +53,7 @@ class StockAccount(models.Model):
         related_name='stock_accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.st_company} {self.st_acc_num} ({self.st_user_id})"
@@ -80,7 +81,7 @@ class StockContent(models.Model):
         related_name='stock_contents',
         verbose_name='주식용계좌'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.ticker_code} {self.share}주 매수완료"
@@ -93,11 +94,6 @@ class StockContent(models.Model):
 
 class AccountBookCategory(models.Model):
     """가계부 카테고리 모델"""
-    KIND_CHOICES = [
-        ('income', '수입'),
-        ('expense', '지출'),
-    ]
-    
     CATEGORY_CHOICES = [
         ('식비', '식비'),
         ('교통/차량', '교통/차량'),
@@ -117,24 +113,23 @@ class AccountBookCategory(models.Model):
         ('상여', '상여'),
         ('금융소득', '금융소득'),
     ]
-    
+
+    cat_type = models.CharField(
+        '카테고리종류',
+        max_length=20,
+        choices=CATEGORY_CHOICES
+    )
     cat_kind = models.CharField(
         '카테고리 구분',
         max_length=10,
-        choices=KIND_CHOICES,
-        default='expense'  # 기본값을 지출로 설정
+        choices=[('income', '수입'), ('expense', '지출')],
+        default='expense'
     )
+    created_at = models.DateTimeField('생성일', default=timezone.now)
 
-    cat_type = models.CharField(
-        '카테고리종류', 
-        max_length=20, 
-        choices=CATEGORY_CHOICES
-    )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
-    
     def __str__(self):
-        return f"{self.cat_type} ({self.get_cat_kind_display()})"
-    
+        return self.cat_type + " 카테고리"
+
     class Meta:
         verbose_name = "가계부카테고리"
         verbose_name_plural = "가계부카테고리 목록"
@@ -164,7 +159,7 @@ class TransactionAccount(models.Model):
         related_name='partner_transactions',
         verbose_name='상대계좌아이디'
     )
-    txn_date = models.DateTimeField('거래날짜', auto_now_add=True)
+    txn_date = models.DateTimeField('거래날짜', default=timezone.now)
     txn_cat = models.ForeignKey(
         AccountBookCategory,
         on_delete=models.SET_NULL,
@@ -188,13 +183,13 @@ class TransactionCash(models.Model):
         ('수입', '수입'),
         ('지출', '지출'),
     ]
-    
+
     cash_side = models.CharField('방식', max_length=10, choices=CASH_SIDE_CHOICES)
     cash_amount = models.IntegerField('금액')
-    use_date = models.DateTimeField('사용날짜', auto_now_add=True)
+    use_date = models.DateTimeField('사용날짜', default=timezone.now)
     cash_balance = models.IntegerField('잔액')
     cash_cont = models.CharField('내용', max_length=300, null=True, blank=True)
-    memo = models.TextField('메모', null=True, blank=True)
+    memo = models.CharField('메모', max_length=300, null=True, blank=True)
     photo = models.ImageField('사진', upload_to='photos/%Y/%m/%d/', null=True, blank=True)
     cash_cat = models.ForeignKey(
         AccountBookCategory,
@@ -209,10 +204,10 @@ class TransactionCash(models.Model):
         related_name='cash_transactions',
         verbose_name='사용자'
     )
-    
+
     def __str__(self):
         return f"{self.cash_side}: {self.cash_amount:,}원 현금거래완료"
-    
+
     class Meta:
         verbose_name = "현금거래내역"
         verbose_name_plural = "현금거래내역 목록"
