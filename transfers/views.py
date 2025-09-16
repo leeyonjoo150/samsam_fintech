@@ -8,12 +8,13 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.db import transaction
 from django.contrib.auth.hashers import make_password, check_password
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, Sum # Added OuterRef, Subquery, Sum
 from django.utils import timezone
 from decimal import Decimal
 import json
 
 from .models import User, Account, Transaction
+from manage_account.models import TransactionAccount, AccountBookCategory # Added TransactionAccount and AccountBookCategory import
 
 class LoginView(View):
     """로그인 뷰"""
@@ -31,7 +32,7 @@ class LoginView(View):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                messages.success(request, f'{user.username}님 환영합니다!')
+                messages.success(request, f'{user.user_name}님 환영합니다!')
                 return redirect('transfers:dashboard')
             else:
                 messages.error(request, '아이디 또는 비밀번호가 올바르지 않습니다.')
@@ -59,7 +60,7 @@ def dashboard(request):
         'user_accounts': user_accounts,
         'recent_transactions': recent_transactions,
     }
-    return render(request, 'accounts/dashboard.html', context)
+    return render(request, 'transfers/dashboard.html', context)
 
 @login_required
 def transaction_history(request):
@@ -90,10 +91,23 @@ def transaction_history(request):
 @login_required
 def transfer_form(request):
     """계좌 이체 폼 페이지"""
-    user_accounts = Account.objects.filter(acc_user_name=request.user)
-    
+    # 각 계좌의 최신 거래 잔액을 가져오는 서브쿼리
+    latest_transaction_balance = TransactionAccount.objects.filter(
+        my_acc__acc_user_name=request.user, # Filter by current user's accounts
+        my_acc=OuterRef('pk')
+    ).order_by('-txn_date').values('txn_balance')[:1]
+
+    # 계좌 목록에 최신 잔액을 주석으로 추가
+    user_accounts = Account.objects.filter(acc_user_name=request.user).annotate(
+        latest_balance=Subquery(latest_transaction_balance)
+    )
+
+    # 총 자산 계산
+    total_assets = user_accounts.aggregate(total=Sum('latest_balance'))['total'] or 0
+
     context = {
         'user_accounts': user_accounts,
+        'total_assets': total_assets, # Added total_assets to context
     }
     return render(request, 'transfers/transfer_form.html', context)
 
@@ -107,11 +121,27 @@ def verify_account_password(request):
         amount = request.POST.get('amount')
         description = request.POST.get('description', '')
         account_password = request.POST.get('account_password')
-        
+
+        transfer_data = {
+            'from_account': from_account_num,
+            'to_account': to_account_num,
+            'recipient_bank': recipient_bank,
+            'amount': amount,
+            'description': description,
+        }
+
+        # If account_password is not present, it means this is the initial POST from transfer_form.
+        # In this case, we should just render the password verification form.
+        if not account_password:
+            context = {
+                'transfer_data': transfer_data,
+            }
+            return render(request, 'transfers/verify_password.html', context)
+
+        # If account_password is present, proceed with validation.
         try:
             from_account = get_object_or_404(Account, acc_num=from_account_num, acc_user_name=request.user)
             
-            # 계좌 비밀번호 확인
             if check_password(account_password, from_account.acc_pw):
                 # 받는 계좌 확인
                 try:
@@ -122,23 +152,34 @@ def verify_account_password(request):
                     # 외부 계좌로 처리 (실제로는 외부 은행 API 호출)
                     context = {
                         'error_message': f'{recipient_bank} {to_account_num} 계좌를 찾을 수 없습니다. 계좌 정보를 다시 확인해주세요.',
-                        'transfer_data': {
-                            'from_account': from_account_num,
-                            'to_account': to_account_num,
-                            'amount': amount,
-                        },
+                        'transfer_data': transfer_data,
                         'attempted_at': timezone.now(),
                     }
                     return render(request, 'transfers/transfer_error.html', context)
             else:
-                messages.error(request, '계좌 비밀번호가 올바르지 않습니다.')
+                context = {
+                    'error_message': '계좌 비밀번호가 올바르지 않습니다.',
+                    'transfer_data': transfer_data,
+                    'attempted_at': timezone.now(),
+                }
+                return render(request, 'transfers/transfer_error.html', context)
                 
         except Account.DoesNotExist:
-            messages.error(request, '계좌를 찾을 수 없습니다.')
+            context = {
+                'error_message': '송금 계좌를 찾을 수 없습니다.',
+                'transfer_data': transfer_data,
+                'attempted_at': timezone.now(),
+            }
+            return render(request, 'transfers/transfer_error.html', context)
         except Exception as e:
-            messages.error(request, f'오류가 발생했습니다: {str(e)}')
+            context = {
+                'error_message': f'오류가 발생했습니다: {str(e)}',
+                'transfer_data': transfer_data,
+                'attempted_at': timezone.now(),
+            }
+            return render(request, 'transfers/transfer_error.html', context)
     
-    # GET 요청이거나 비밀번호 확인 실패 시
+    # GET 요청이거나 비밀번호 확인 실패 시 (This part is for GET requests)
     transfer_data = {
         'from_account': request.POST.get('from_account') or request.GET.get('from_account'),
         'to_account': request.POST.get('to_account') or request.GET.get('to_account'),
@@ -156,7 +197,7 @@ def process_transfer(request, from_account, to_account, amount, description):
     """송금 처리 함수"""
     try:
         with transaction.atomic():
-            amount = Decimal(str(amount))
+            amount = Decimal(str(amount).replace(',', ''))
             
             # 잔액 확인
             if from_account.acc_money < amount:
@@ -181,16 +222,56 @@ def process_transfer(request, from_account, to_account, amount, description):
                 amount=amount,
                 description=description,
             )
+
+            # TransactionAccount (계좌거래내역) 생성 - 출금 계좌
+            TransactionAccount.objects.create(
+                txn_side='출금',
+                txn_amount=amount,
+                txn_balance=from_account.acc_money, # 업데이트된 잔액
+                txn_cont=f'{to_account.acc_bank} {to_account.acc_num} 송금',
+                my_acc=from_account,
+                cpart_acc=to_account,
+                txn_cat=None # 송금은 특정 가계부 카테고리에 해당하지 않을 수 있음
+            )
+
+            # TransactionAccount (계좌거래내역) 생성 - 입금 계좌
+            TransactionAccount.objects.create(
+                txn_side='입금',
+                txn_amount=amount,
+                txn_balance=to_account.acc_money, # 업데이트된 잔액
+                txn_cont=f'{from_account.acc_bank} {from_account.acc_num} 입금',
+                my_acc=to_account,
+                cpart_acc=from_account,
+                txn_cat=None # 송금은 특정 가계부 카테고리에 해당하지 않을 수 있음
+            )
             
             messages.success(request, f'{to_account.acc_user_name}님께 {amount:,}원을 송금했습니다.')
             return redirect('transfers:transfer_success', transaction_id=new_transaction.id)
             
     except ValueError:
-        messages.error(request, '올바른 금액을 입력해주세요.')
-        return redirect('transfers:transfer_form')
+        context = {
+            'error_message': '올바른 금액을 입력해주세요.',
+            'transfer_data': {
+                'from_account': from_account.acc_num,
+                'to_account': to_account.acc_num,
+                'amount': amount,
+                'description': description,
+            },
+            'attempted_at': timezone.now(),
+        }
+        return render(request, 'transfers/transfer_error.html', context)
     except Exception as e:
-        messages.error(request, f'송금 처리 중 오류가 발생했습니다: {str(e)}')
-        return redirect('transfers:transfer_form')
+        context = {
+            'error_message': f'송금 처리 중 오류가 발생했습니다: {str(e)}',
+            'transfer_data': {
+                'from_account': from_account.acc_num,
+                'to_account': to_account.acc_num,
+                'amount': amount,
+                'description': description,
+            },
+            'attempted_at': timezone.now(),
+        }
+        return render(request, 'transfers/transfer_error.html', context)
 
 @login_required
 def transfer_success(request, transaction_id):

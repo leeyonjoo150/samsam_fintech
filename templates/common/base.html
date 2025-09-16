@@ -29,7 +29,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link fw-bold navbar-text-white" href="#">가계부</a>
                     </li>
@@ -48,6 +48,20 @@
                             <li><a class="dropdown-item" href="{% url 'manage_account:account_create' %}">계좌 추가</a></li>
                         </ul>
                     </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link navbar-text-white">환영합니다, {{ user.user_name }}님</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'transfers:logout' %}">로그아웃</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'transfers:login' %}">로그인</a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

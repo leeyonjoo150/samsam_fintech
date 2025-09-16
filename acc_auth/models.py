@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.utils import timezone
 
 class UserManager(BaseUserManager):
     """사용자 모델을 위한 커스텀 매니저"""
@@ -44,7 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     is_staff = models.BooleanField('스태프 권한', default=False)
     is_active = models.BooleanField('활성 상태', default=True)
-    created_at = models.DateTimeField('가입일', auto_now_add=True)
+    created_at = models.DateTimeField('가입일', default=timezone.now)
 
     objects = UserManager()
 

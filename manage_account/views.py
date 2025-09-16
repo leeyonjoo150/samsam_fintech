@@ -1,7 +1,8 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from .models import Account, TransactionAccount
-from django.db.models import OuterRef, Subquery, Sum
+from django.db.models import OuterRef, Subquery, Sum, DecimalField # Added DecimalField
+from django.db.models.functions import Coalesce # Added Coalesce
 from .forms import AccountModelForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.hashers import make_password
@@ -25,9 +26,9 @@ def account_list(request) :
         my_acc=OuterRef('pk')
     ).order_by('-txn_date').values('txn_balance')[:1]
 
-    # 계좌 목록에 최신 잔액을 주석으로 추가
+    # 계좌 목록에 최신 잔액을 주석으로 추가 (TransactionAccount가 없으면 acc_money 사용)
     accounts = Account.objects.annotate(
-        latest_balance=Subquery(latest_transaction_balance)
+        latest_balance=Coalesce(Subquery(latest_transaction_balance), 'acc_money', output_field=DecimalField())
     )
     
     # 총 자산 계산

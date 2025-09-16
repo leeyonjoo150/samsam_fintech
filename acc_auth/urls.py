@@ -1,7 +1,8 @@
 from django.urls import path
-#원하는 뷰를 가져오는 형태
+from . import views
 
 app_name = 'acc_auth'
 
 urlpatterns = [
+    path('signup/', views.signup, name='signup'),
 ]

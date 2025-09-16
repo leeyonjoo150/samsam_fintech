@@ -1,5 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'common/base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -9,6 +10,7 @@
                 <h4 class="mb-0">
                     <i class="bi bi-arrow-right-circle"></i> 송금하기
                 </h4>
+                <p class="text-white-50 mb-0">총 자산: {{ total_assets|floatformat:0|intcomma }}원</p>
             </div>
             <div class="card-body">
                 <form method="post" action="{% url 'transfers:verify_password' %}" id="transferForm">
@@ -45,8 +47,8 @@
                     <div class="mb-4">
                         <label for="amount" class="form-label fw-bold">금액</label>
                         <div class="input-group">
-                            <input type="number" class="form-control" id="amount" name="amount" 
-                                   placeholder="송금할 금액을 입력하세요" min="100" required>
+                            <input type="text" class="form-control" id="amount" name="amount" 
+                                   placeholder="송금할 금액을 입력하세요" inputmode="numeric" required>
                             <span class="input-group-text">원</span>
                         </div>
                     </div>
@@ -115,11 +117,11 @@ function validateAndSubmit() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const confirmMsg = `송금 정보를 확인해주세요:\n\n` +
-                             `받는 분: ${data.owner_name}\n` +
-                             `은행: ${data.bank_name}\n` +
-                             `계좌: ${toAccount}\n` +
-                             `금액: ${parseInt(amount).toLocaleString()}원\n\n` +
+            const confirmMsg = `송금 정보를 확인해주세요:\n\n` + 
+                             `받는 분: ${data.owner_name}\n` + 
+                             `은행: ${data.bank_name}\n` + 
+                             `계좌: ${toAccount}\n` + 
+                             `금액: ${parseInt(amount).toLocaleString()}원\n\n` + 
                              `송금하시겠습니까?`;
             
             if (confirm(confirmMsg)) {
@@ -135,12 +137,22 @@ function validateAndSubmit() {
     });
 }
 
-// 금액 입력시 천단위 콤마 표시
+// 금액 입력시 천단위 콤마 표시 (개선된 방식)
 document.getElementById('amount').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/,/g, '');
-    if (value) {
-        e.target.value = parseInt(value).toLocaleString();
+    // 입력값에서 숫자 이외의 문자를 모두 제거합니다.
+    let value = e.target.value.replace(/[^0-9]/g, '');
+    
+    // 값이 비어있으면 아무것도 표시하지 않습니다.
+    if (!value) {
+        e.target.value = '';
+        return;
     }
+    
+    // 정규식을 사용하여 3자리마다 콤마를 추가합니다.
+    const formattedValue = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    
+    // 포맷된 값을 input에 다시 설정합니다.
+    e.target.value = formattedValue;
 });
 </script>
 {% endblock %}
