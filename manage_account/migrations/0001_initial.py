@@ -84,7 +84,8 @@ class Migration(migrations.Migration):
                 ('txn_amount', models.IntegerField(verbose_name='금액')),
                 ('txn_balance', models.IntegerField(verbose_name='잔액')),
                 ('txn_cont', models.CharField(blank=True, max_length=300, null=True, verbose_name='내용')),
-                ('txn_date', models.DateTimeField(auto_now_add=True, verbose_name='거래날짜')),
+                ('txn_date', models.DateTimeField(verbose_name='거래날짜')),
+                # ('txn_date', models.DateTimeField(auto_now_add=True, verbose_name='거래날짜')), # 기존 필드, 주석 처리 함. auto_now_add=True로 설정하면 객체 생성 시점의 시간이 자동으로 입력되어, 데이터 마이그레이션 시 원하는 날짜로 설정할 수 없습니다.
                 ('cpart_acc', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='partner_transactions', to='manage_account.account', verbose_name='상대계좌아이디')),
                 ('my_acc', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='my_transactions', to='manage_account.account', verbose_name='내계좌아이디')),
                 ('txn_cat', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='manage_account.accountbookcategory', verbose_name='가계부카테고리')),

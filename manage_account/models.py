@@ -4,6 +4,7 @@ from django.conf import settings
 import os
 from PIL import Image
 from datetime import date, datetime
+from django.utils import timezone
 
 # Create your models here.
 # 마이그레이션 명령어:
@@ -145,9 +146,15 @@ class TransactionAccount(models.Model):
         Account,
         on_delete=models.CASCADE,
         related_name='partner_transactions',
+        null=True,   # 상대 계좌는 선택 사항이므로 null 허용. modified by HL5BUJ
+        blank=True,  # 폼에서 빈 값 허용. modified by HL5BUJ
         verbose_name='상대계좌아이디'
     )
-    txn_date = models.DateTimeField('거래날짜', auto_now_add=True)
+    # txn_date 필드에 auto_now_add=False로 설정하여 수동으로 날짜를 지정할 수 있도록 수정
+    # auto_now_add=True로 설정하면 객체 생성 시점의 시간이 자동으로 입력되어, 데이터 마이그레이션 시 원하는 날짜로 설정할 수 없습니다.
+    # txn_date = models.DateTimeField('거래날짜', default=timezone.now, blank=True, null=True)
+    txn_date = models.DateTimeField('거래날짜', blank=True, null=True)
+    # txn_date = models.DateTimeField('거래날짜', auto_now_add=True)
     txn_cat = models.ForeignKey(
         AccountBookCategory,
         on_delete=models.SET_NULL,
