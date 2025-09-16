@@ -114,3 +114,35 @@ textarea.form-control {
 .navbar-nav .dropdown-menu {
     margin-top: 8px; /* Add margin to prevent overlap with a more specific selector */
 }
+
+/* ==========================================================================
+   Custom Purple Theme for Buttons and Pagination
+   ========================================================================== */
+
+/* Custom Purple Button */
+.btn-purple {
+    background-color: #6a11cb;
+    border-color: #6a11cb;
+    color: #ffffff;
+}
+
+.btn-purple:hover, .btn-purple:focus {
+    background-color: #5a0fb1; /* Darker purple */
+    border-color: #530e9f;
+    color: #ffffff;
+}
+
+/* Pagination Purple Theme */
+.pagination .page-link {
+    color: #6a11cb;
+}
+
+.pagination .page-link:hover {
+    color: #4e0c8f;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #6a11cb;
+    border-color: #6a11cb;
+    color: #ffffff;
+}

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from acc_auth.models import User
 from django.conf import settings
 import os
@@ -30,7 +31,7 @@ class Account(models.Model):
         related_name='accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.acc_bank} {self.acc_num} ({self.acc_user_name})"
@@ -52,7 +53,7 @@ class StockAccount(models.Model):
         related_name='stock_accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.st_company} {self.st_acc_num} ({self.st_user_id})"
@@ -80,7 +81,7 @@ class StockContent(models.Model):
         related_name='stock_contents',
         verbose_name='주식용계좌'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.ticker_code} {self.share}주 매수완료"
@@ -113,7 +114,7 @@ class AccountBookCategory(models.Model):
         max_length=20, 
         choices=CATEGORY_CHOICES
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return self.cat_type + " 카테고리"
@@ -147,7 +148,7 @@ class TransactionAccount(models.Model):
         related_name='partner_transactions',
         verbose_name='상대계좌아이디'
     )
-    txn_date = models.DateTimeField('거래날짜', auto_now_add=True)
+    txn_date = models.DateTimeField('거래날짜', default=timezone.now)
     txn_cat = models.ForeignKey(
         AccountBookCategory,
         on_delete=models.SET_NULL,
@@ -174,7 +175,7 @@ class TransactionCash(models.Model):
     
     cash_side = models.CharField('방식', max_length=10, choices=CASH_SIDE_CHOICES)
     cash_amount = models.IntegerField('금액')
-    use_date = models.DateTimeField('사용날짜', auto_now_add=True)
+    use_date = models.DateTimeField('사용날짜', default=timezone.now)
     cash_balance = models.IntegerField('잔액')
     cash_cont = models.CharField('내용', max_length=300, null=True, blank=True)
     cash_cat = models.ForeignKey(
