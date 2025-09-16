@@ -182,7 +182,7 @@ def add_stock_holding(request):
     user_accounts = StockAccount.objects.filter(st_user_id=user)
     if not user_accounts.exists():
         messages.error(request, '주식 계좌가 없어 보유 종목을 추가할 수 없습니다. 먼저 계좌를 등록해주세요.')
-        return redirect('manage_account:add_stock_account')
+        return redirect('financial_data:add_stock_account')
 
     if request.method == 'POST':
         form = StockHoldingForm(request.POST, user=user) # 폼에 user 객체를 전달합니다.
@@ -457,7 +457,7 @@ def add_stock_holding_new(request):
     user_accounts = StockAccount.objects.filter(st_user_id=user)
     if not user_accounts.exists():
         messages.error(request, '주식 계좌가 없어 보유 종목을 추가할 수 없습니다. 먼저 계좌를 등록해주세요.')
-        return redirect('manage_account:add_stock_account')
+        return redirect('financial_data:add_stock_account')
 
     if request.method == 'POST':
         form = StockHoldingForm(request.POST, user=user) # 폼에 user 객체를 전달합니다.
