@@ -192,17 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleSearchBtn.addEventListener("click", toggleSearchForm);
     }
 
-    // Event listener for date range container to open start date picker
-    const searchFormControls = document.querySelector(".search-form-controls");
-    if (searchFormControls) {
-        searchFormControls.addEventListener("click", () => {
-            if (searchStartDateInput && searchStartDateInput.showPicker) {
-                searchStartDateInput.showPicker();
-            } else if (searchStartDateInput) {
-                searchStartDateInput.click(); // Fallback for browsers without showPicker
-            } 
-        });
-    }
+    // No explicit click listeners for date inputs; native behavior should handle opening pickers.
 
     // Event listeners for filter buttons (지출, 수입)
     if (searchExpenseBtn) {
@@ -262,15 +252,125 @@ document.addEventListener("DOMContentLoaded", () => {
             const endDate = searchEndDateInput.value;
             const amount = searchAmountInput.value;
 
-            console.log("Executing search with:");
-            console.log("Start Date:", startDate);
-            console.log("End Date:", endDate);
-            console.log("Type:", selectedSearchType);
-            console.log("Amount:", amount);
-
-            // Here you would typically make an AJAX request to your Django backend
-            // to filter transactions based on these criteria.
-            // For now, it just logs the values.
+            performSearch(startDate, endDate, selectedSearchType, searchCategorySelect.value, amount);
         });
     }
+
+    // Function to perform the search
+    async function performSearch(startDate, endDate, type, categoryId, amount) {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+        if (type) queryParams.append('type', type);
+        if (categoryId) queryParams.append('category', categoryId);
+        if (amount) queryParams.append('amount', amount);
+
+        try {
+            const response = await fetch(`/accbook/search_transactions/?${queryParams.toString()}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            renderTransactions(data.transactions);
+            updateSearchResultsDisplay(data.transactions.length, startDate, endDate);
+            searchFormArea.style.display = "none"; // Hide search form after execution
+            dateNavigationArea.style.display = "flex"; // Show date navigation area
+        } catch (error) {
+            console.error("Error performing search:", error);
+            alert("검색 중 오류가 발생했습니다.");
+        }
+    }
+
+    // Function to render transactions in the table
+    function renderTransactions(transactions) {
+        const recordList = document.getElementById("record-list");
+        recordList.innerHTML = ''; // Clear existing transactions
+
+        if (transactions.length === 0) {
+            recordList.innerHTML = '<tr><td colspan="8" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
+            return;
+        }
+
+        transactions.forEach(transaction => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><input type="checkbox" data-id="${transaction.id}"></td>
+                <td>${transaction.use_date}</td>
+                <td>${transaction.cash_side}</td>
+                <td>${transaction.asset_type}</td>
+                <td>${transaction.category_name || ''}</td>
+                <td>${transaction.cash_amount.toLocaleString()}</td>
+                <td>${transaction.cash_cont}</td>
+                <td>
+                    ${transaction.memo || ''}
+                    ${transaction.photo_url ? `<a href="${transaction.photo_url}" target="_blank" title="사진 보기">📷</a>` : ''}
+                </td>
+            `;
+            recordList.appendChild(row);
+        });
+        bindMasterCheckbox(); // Re-bind checkboxes for new rows
+        updateAlertBar(); // Update alert bar based on new rows
+    }
+
+    // Function to update the search results display
+    function updateSearchResultsDisplay(count, startDate, endDate) {
+        const searchResultsContainer = document.querySelector(".search-results-container");
+        const searchCountSpan = document.getElementById("search-count");
+        const searchPeriodSpan = document.querySelector(".search-period");
+        const searchStartDateSpan = document.getElementById("search-start-date");
+        const searchEndDateSpan = document.getElementById("search-end-date");
+
+        if (count > 0) {
+            // searchResultsContainer.style.display = "flex"; // Keep hidden as per user request
+            searchCountSpan.textContent = count;
+            searchStartDateSpan.textContent = startDate ? startDate.replace(/-/g, '.') : 'N/A';
+            searchEndDateSpan.textContent = endDate ? endDate.replace(/-/g, '.') : 'N/A';
+            searchPeriodSpan.style.display = "block"; // Show period if dates are present
+        } else {
+            searchResultsContainer.style.display = "none";
+            searchPeriodSpan.style.display = "none";
+        }
+    }
+
+    // Initial load or reset search
+    async function loadDefaultTransactions() {
+        try {
+            const response = await fetch('/accbook/search_transactions/'); // Fetch all transactions
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            renderTransactions(data.transactions);
+            document.querySelector(".search-results-container").style.display = "none"; // Hide search results
+        } catch (error) {
+            console.error("Error loading default transactions:", error);
+            alert("거래 내역을 불러오는 중 오류가 발생했습니다.");
+        }
+    }
+
+    // Modify searchResetBtn to also clear search results and load default transactions
+    if (searchResetBtn) {
+        searchResetBtn.addEventListener("click", () => {
+            searchStartDateInput.value = "";
+            searchEndDateInput.value = "";
+            searchAmountInput.value = "";
+            searchExpenseBtn.classList.remove("active");
+            searchIncomeBtn.classList.remove("active");
+            selectedSearchType = null;
+            searchCategorySelect.style.display = 'none'; // Hide dropdown
+            searchCategorySelect.value = ""; // Reset selected value
+            console.log("Search form reset. Loading default transactions.");
+            loadDefaultTransactions(); // Load all transactions
+        });
+    }
+
+    // Initial load of transactions when the page loads
+    console.log("home.js: Initializing...");
+    loadDefaultTransactions();
+});
+
+// Global error handler to catch any uncaught errors
+window.addEventListener('error', (event) => {
+    console.error("home.js: Uncaught error detected:", event.error);
+    // Optionally, display a user-friendly message or log to a server
 });

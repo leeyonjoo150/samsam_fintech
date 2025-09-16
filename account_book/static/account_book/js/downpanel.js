@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('downpanel.js: DOMContentLoaded event fired.');
+    const singleDateInput = document.getElementById('downpanel_single_date_input'); // Declare singleDateInput here
     // =================================================
     // Element Selectors
     // =================================================
@@ -41,6 +43,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (closeBtn) {
         closeBtn.addEventListener('click', () => downPanel && downPanel.classList.remove('open'));
+    }
+
+    // =================================================
+    // Single Date Input Logic (for the top date input)
+    // =================================================
+    if (singleDateInput) {
+        console.log('downpanel.js: Found single date input element with ID downpanel_single_date_input.');
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formattedDate = `${year}-${month}-${day}`;
+        singleDateInput.value = formattedDate;
+        console.log('downpanel.js: Single date input value set to', singleDateInput.value);
+
+        singleDateInput.addEventListener('change', function() {
+            console.log('downpanel.js: Single date input changed:', this.value);
+        });
+    } else {
+        console.log('downpanel.js: Could not find single date input element with ID downpanel_single_date_input.');
     }
 
     // =================================================
@@ -140,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const bindRowEvents = (row) => {
+        console.log('downpanel.js: Binding events for new row.');
         // Calendar icon click
         // Date cell logic is now handled by a simple text input.
 
@@ -191,11 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const dateInput = row.querySelector('.bulk-date-input');
-        if (dateInput) {
-            dateInput.addEventListener('input', formatDateInput);
-            dateInput.addEventListener('change', (e) => {
-                console.log('[FORCE STYLE] Date changed. Value:', e.target.value);
+        // Date input within the table row
+        const rowDateInput = row.querySelector('.bulk-date-input');
+        if (rowDateInput) {
+            console.log('downpanel.js: Found row date input with class bulk-date-input.');
+            rowDateInput.addEventListener('input', formatDateInput);
+            rowDateInput.addEventListener('change', (e) => {
+                console.log('[FORCE STYLE] Row Date changed. Value:', e.target.value);
                 if (e.target.value) {
                     e.target.classList.add('has-value');
                     e.target.style.color = 'white'; // Direct style injection
@@ -203,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     e.target.classList.remove('has-value');
                 }
             });
+        } else {
+            console.log('downpanel.js: Could not find row date input with class bulk-date-input.');
         }
     };
 
@@ -272,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createNewRow = () => {
         const newRow = tbody.insertRow();
         newRow.innerHTML = baseRowHTML;
+        console.log('downpanel.js: newRow.innerHTML after creation:', newRow.innerHTML);
         bindRowEvents(newRow);
         return newRow;
     }
