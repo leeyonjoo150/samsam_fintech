@@ -51,7 +51,6 @@ def account_list(request) :
 from datetime import datetime, timedelta
 
 @login_required
-@login_required
 def account_detail(request, pk) :
     account = get_object_or_404(Account, pk=pk)
     
@@ -81,6 +80,7 @@ def account_detail(request, pk) :
 
 from django.contrib.auth.hashers import make_password
 
+@login_required
 def account_create(request):
     if request.method == 'POST':
         form = AccountModelForm(request.POST)
@@ -90,11 +90,7 @@ def account_create(request):
             # 비밀번호를 암호화하여 저장
             account.acc_pw = make_password(form.cleaned_data['acc_pw'])
 
-            try:
-                temp_user = User.objects.get(pk=1)
-                account.acc_user_name = temp_user
-            except User.DoesNotExist:
-                pass
+            account.acc_user_name = request.user
 
             account.save()
             return redirect('manage_account:account_list')
