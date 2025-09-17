@@ -151,13 +151,13 @@ samsam_fintech
 
 ### manage_account, transfers
 
-![송금 결과](images/송금 결과.png)
+![송금 결과](images/송금결과.png)
 
-![자산관리 리스트](images/자산관리 리스트.png)
+![자산관리 리스트](images/자산관리리스트.png)
 
-![자산관리 송금1](images/자산관리 송금1.png)
+![자산관리 송금1](images/자산관리송금1.png)
 
-![자산관리 인증](images/자산관리 인증.png)
+![자산관리 인증](images/자산관리인증.png)
 
 ![자산관리 메인](images/자산관리메인.png)
 
@@ -165,7 +165,7 @@ samsam_fintech
 ### financial_data
 
 #### 금융데이터 검색
-![금융데이터 검색](images/금융데이터 검색.png)
+![금융데이터 검색](images/금융데이터검색.png)
 
 ### account_book
 
