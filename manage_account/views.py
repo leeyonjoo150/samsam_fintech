@@ -81,26 +81,31 @@ def account_detail(request, pk) :
     search_query = request.GET.get('q', '').strip()
     txn_type = request.GET.get('type')
 
-    transactions = TransactionAccount.objects.filter(my_acc=account)
+    # 계좌의 전체 거래 내역 중 가장 최신 잔액을 가져옵니다.
+    absolute_latest_transaction = TransactionAccount.objects.filter(my_acc=account).order_by('-txn_date').first()
+    latest_balance = absolute_latest_transaction.txn_balance if absolute_latest_transaction else 0
+
+    # 필터링된 거래 내역을 가져옵니다.
+    filtered_transactions = TransactionAccount.objects.filter(my_acc=account)
 
     if start_date_str and end_date_str:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
-        transactions = transactions.filter(txn_date__range=(start_date, end_date))
+        filtered_transactions = filtered_transactions.filter(txn_date__range=(start_date, end_date))
 
     if txn_type:
-        transactions = transactions.filter(txn_side=txn_type)
+        filtered_transactions = filtered_transactions.filter(txn_side=txn_type)
 
     if search_query:
-        transactions = transactions.filter(
+        filtered_transactions = filtered_transactions.filter(
             Q(cpart_acc__acc_bank__icontains=search_query) |
             Q(cpart_acc__acc_num__icontains=search_query) |
             Q(cpart_acc__acc_user_name__user_name__icontains=search_query)
         )
 
-    transactions = transactions.order_by('-txn_date')
+    filtered_transactions = filtered_transactions.order_by('-txn_date')
 
-    paginator = Paginator(transactions, 20) # 한 페이지에 20개씩
+    paginator = Paginator(filtered_transactions, 20) # 한 페이지에 20개씩
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -111,6 +116,7 @@ def account_detail(request, pk) :
         'end_date': end_date_str,
         'search_query': search_query,
         'type': txn_type,
+        'latest_balance': latest_balance,
     }
     return render(request, 'manage_account/account_detail.html', context)
 
