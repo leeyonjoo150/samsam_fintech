@@ -13,12 +13,13 @@ from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from django.contrib.auth.hashers import make_password
 # ReportLab 관련 모듈 import
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import Table, TableStyle
 from reportlab.lib import colors
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from django.conf import settings
 import os
 from django.http import JsonResponse
@@ -230,11 +231,11 @@ def export_transactions_csv(request, pk):
 @login_required
 def export_transactions_pdf(request, pk):
     """거래 내역을 ReportLab을 이용해 PDF 파일로 내보내는 View"""
-    
+
     # 1. 데이터 필터링 (기존과 동일)
     account = get_object_or_404(Account, pk=pk, acc_user_name=request.user)
     transactions = TransactionAccount.objects.filter(my_acc=account)
-    
+
     start_date_str = request.GET.get('start_date')
     end_date_str = request.GET.get('end_date')
     search_query = request.GET.get('q', '').strip()
@@ -256,7 +257,7 @@ def export_transactions_pdf(request, pk):
         )
     transactions = transactions.order_by('-txn_date')
 
-    # 2. PDF 파일명 설정
+    # 2. PDF 파일명 설정 (기존과 동일)
     response = HttpResponse(content_type='application/pdf')
     account_identifier = account.get_acc_bank_display()
     timestamp = datetime.now().strftime('%Y%m%d')
@@ -264,23 +265,30 @@ def export_transactions_pdf(request, pk):
     filename = re.sub(r'[\\/*?:"<>|]', "", filename)
     response['Content-Disposition'] = f"attachment; filename*=UTF-8''{quote(filename)}"
 
-    # 3. ReportLab으로 PDF 내용 그리기
+    # 3. ReportLab Platypus로 PDF 내용 생성 (수정된 부분)
     # 3-1. 한글 폰트 등록
     font_path = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'NanumGothic.ttf')
     pdfmetrics.registerFont(TTFont('NanumGothic', font_path))
+    
+    # 3-2. 문서 템플릿 생성
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50)
+    
+    # 3-3. 내용(Flowables)을 담을 리스트
+    story = []
+    
+    # 3-4. 스타일 정의
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='KoreanTitle', parent=styles['Title'], fontName='NanumGothic'))
+    styles.add(ParagraphStyle(name='KoreanBody', parent=styles['Normal'], fontName='NanumGothic'))
 
-    # 3-2. PDF 문서(Canvas) 생성
-    p = canvas.Canvas(response, pagesize=letter)
-    width, height = letter # 페이지 크기
+    # 3-5. 제목 및 계좌 정보 추가
+    story.append(Paragraph("거래 명세서", styles['KoreanTitle']))
+    story.append(Spacer(1, 0.2 * inch))
+    story.append(Paragraph(f"계좌: {account.get_acc_bank_display()} {account.acc_num}", styles['KoreanBody']))
+    story.append(Paragraph(f"소유주: {account.acc_user_name.user_name}", styles['KoreanBody']))
+    story.append(Spacer(1, 0.3 * inch))
 
-    # 3-3. 제목 및 계좌 정보 쓰기
-    p.setFont('NanumGothic', 18)
-    p.drawString(50, height - 50, "거래 명세서")
-    p.setFont('NanumGothic', 10)
-    p.drawString(50, height - 80, f"계좌: {account.get_acc_bank_display()} {account.acc_num}")
-    p.drawString(50, height - 95, f"소유주: {account.acc_user_name.user_name}")
-
-    # 3-4. 테이블 데이터 준비
+    # 3-6. 테이블 데이터 준비 (기존과 동일)
     data = [['거래일', '종류', '금액', '잔액', '상대 계좌']]
     for t in transactions:
         amount_str = f"+{t.txn_amount:,}" if t.txn_side == '입금' else f"-{t.txn_amount:,}"
@@ -293,27 +301,26 @@ def export_transactions_pdf(request, pk):
         ]
         data.append(row)
 
-    # 3-5. 테이블 스타일 정의 및 생성
+    # 3-7. 테이블 스타일 정의 및 생성
     table = Table(data, colWidths=[120, 50, 80, 100, 150])
     style = TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4a5568')), # 헤더 배경색
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4a5568')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'NanumGothic'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.whitesmoke, colors.lightgrey])
     ])
     table.setStyle(style)
+    
+    # 3-8. 테이블을 story에 추가
+    story.append(table)
 
-    # 3-6. 테이블 그리기
-    table_height = len(data) * 20 # 근사치 높이 계산
-    table.wrapOn(p, width, height)
-    table.drawOn(p, 50, height - 120 - table_height)
-
-    # 3-7. PDF 저장
-    p.showPage()
-    p.save()
+    # 3-9. PDF 문서 빌드
+    doc.build(story)
 
     return response
+
