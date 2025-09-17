@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +18,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark navbar-gradient shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'main:index' %}">
+            <a class="navbar-brand" href="{% if user.is_authenticated %}{% url 'main:index' %}{% else %}{% url 'acc_auth:login_view' %}{% endif %}">
                 <!-- Icon/Brand for Main Page -->
                 <!-- <img src="{% static 'images/logo.png' %}" alt="삼삼핀테크 로고" width="30" height="24" class="d-inline-block align-text-top">
                 삼삼핀테크 -->
@@ -31,13 +32,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link fw-bold navbar-text-white" href="#">가계부</a>
+                        <a class="nav-link fw-bold navbar-text-white" href="{% url 'account_book:home' %}">가계부</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link fw-bold navbar-text-white" href="#">대시보드</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-bold navbar-text-white" href="#">금융 데이터</a>
+                        <a class="nav-link fw-bold navbar-text-white" href="{% url 'financial_data:my_stock_holdings' %}">금융 데이터</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle fw-bold navbar-text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -48,18 +49,18 @@
                             <li><a class="dropdown-item" href="{% url 'manage_account:account_create' %}">계좌 추가</a></li>
                         </ul>
                     </li>
-                </ul>
+                    </ul>
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item">
-                            <span class="nav-link navbar-text-white">환영합니다, {{ user.user_name }}님</span>
+                            <span class="nav-link navbar-text-white">안녕하세요, {{ user.user_name }}님</span>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'transfers:logout' %}">로그아웃</a>
+                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'acc_auth:logout_view' %}">로그아웃</a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'transfers:login' %}">로그인</a>
+                            <a class="nav-link fw-bold navbar-text-white" href="{% url 'acc_auth:login_view' %}">로그인</a>
                         </li>
                     {% endif %}
                 </ul>
