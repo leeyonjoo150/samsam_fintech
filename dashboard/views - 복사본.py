@@ -1,0 +1,130 @@
+# dashboard/views.py
+
+from django.shortcuts import render
+from django.db.models import Sum, F
+# from .models import Transaction   # 같은 앱 내의 모델 import - dashboard 앱 테스트를 위해 만든 모델 import
+from django.contrib.auth.decorators import login_required
+from manage_account.models import TransactionAccount, Account, AccountBookCategory # 가계부 앱 모델을 읽기 위해 import
+from datetime import date, timedelta
+from django.db.models.functions import TruncMonth
+from django.utils import timezone                       # 이 라인 전체APP Merge후 추가하였음.
+import json
+from decimal import Decimal
+import calendar # 이 라인을 추가하세요.
+
+# JSON 직렬화를 위한 헬퍼 클래스
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)  # Decimal을 float로 변환하여 JSON에서 숫자로 인식
+        if isinstance(obj, date):
+            return obj.isoformat()
+        return super().default(obj)
+
+@login_required         # 로그인한 사용자만 접근 가능하도록 데코레이터 추가
+def dashboard_view(request):
+    # 날짜 필터링 파라미터 가져오기
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    
+    # 기본 날짜 범위 설정: 현재 월
+    today = date.today()
+    if start_date_str:
+        start_date = date.fromisoformat(start_date_str)
+    else:
+        start_date = today.replace(day=1)
+
+    if end_date_str:
+        end_date = date.fromisoformat(end_date_str)
+    else:
+        end_date = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+        
+    # 여기서 end_date에 하루를 더하여 필터링 범위를 확장합니다.
+    # 이렇게 하면 end_date 하루 전체가 포함됩니다. 
+    # 예를 들어, 종료일 그대로하면 2023-10-10 00:00:00 까지만 포함되어 2023-10-10일 전체가 포함되지 않음
+    end_date_inclusive = end_date + timedelta(days=1)
+    
+    # 로그인한 사용자 계좌를 먼저 가져온다.
+    # User 모델은 request.user를 통해 접근 가능
+    user_accounts = Account.objects.filter(acc_user_name=request.user)
+    
+    # 로그인한 사용자 계좌와 연결된 거래 내역을 조회
+    # filter(my_acc__in=user_accounts)를 사용하여 로그인한 사용자의 거래만 필터링
+    # select_related('txn_cat')를 사용하여 TransactionAccount와 AccountBookCategory를 미리 조인하여 쿼리 횟수를 줄인다.
+    # 또한, txn_date 필드를 사용하여 날짜 범위 필터링
+    transactions = TransactionAccount.objects.filter(
+        my_acc__in=user_accounts, 
+        # 옛날 코드: txn_date__range=[start_date, end_date]
+        # range 대신 gte와 lt를 조합하여 날짜 범위 필터링
+        txn_date__gte=start_date,
+        txn_date__lt=end_date_inclusive
+    ).select_related('txn_cat')
+    
+    # 각 집계 및 조회 쿼리를 새로운 모델에 맞게 수정
+    # 필드명도 'amount' -> 'txn_amount', 'transaction_type' -> 'txn_side', 'category' -> 'txn_cat'으로 변경
+    # # OLD-총 수입/지출/순자산
+    # total_income = Transaction.objects.filter(transaction_type='수입', transaction_date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or Decimal(0)
+    # total_expense = Transaction.objects.filter(transaction_type='지출', transaction_date__range=[start_date, end_date]).aggregate(Sum('amount'))['amount__sum'] or Decimal(0)
+    # net_balance = total_income - total_expense
+    #
+    # 총 수입/지출/순자산
+    total_income = transactions.filter(txn_side='수입').aggregate(Sum('txn_amount'))['txn_amount__sum'] or Decimal(0)
+    total_expense = transactions.filter(txn_side='지출').aggregate(Sum('txn_amount'))['txn_amount__sum'] or Decimal(0)
+    net_balance = total_income - total_expense   
+    
+    # 카테고리별 지출 집계
+    # values()에 'txn_cat' (ForeignKey)을 사용하고 annotate(total=Sum('txn_amount'))로 집계합니다.
+    # 이 경우 'txn_cat' 필드에는 카테고리의 ID가 반환되므로, 템플릿에서 카테고리 이름을 사용하려면 조인된 객체에 접근해야 합니다.
+    # OLD-카테고리별 지출 집계
+    # expense_by_category = list(Transaction.objects.filter(transaction_type='지출', transaction_date__range=[start_date, end_date]).values('category').annotate(total=Sum('amount')).order_by('-total'))
+    #
+    # JSON 직렬화를 위해 리스트를 생성할 때 category 이름을 직접 가져와야 합니다.
+    expense_by_category_data = list(transactions.filter(txn_side='지출').values('txn_cat__cat_type').annotate(total=Sum('txn_amount')).order_by('-total'))
+    # 필드명 변경: 'txn_cat__cat_type'을 'category'로, 'total'을 'total'로 유지합니다.
+    expense_by_category = [{'category': item['txn_cat__cat_type'], 'total': item['total']} for item in expense_by_category_data]
+
+    # OLD-월별 수입/지출 추이 집계
+    # transactions_by_month = list(Transaction.objects.filter(transaction_date__range=[start_date, end_date]).annotate(month=TruncMonth('transaction_date')).values('month', 'transaction_type').annotate(total=Sum('amount')).order_by('month', 'transaction_type'))
+    # 월별 수입/지출 추이 집계
+    transactions_by_month_data = list(transactions.annotate(month=TruncMonth('txn_date')).values('month', 'txn_side').annotate(total=Sum('txn_amount')).order_by('month', 'txn_side'))
+    # 필드명 변경: 'txn_side'를 'transaction_type'으로, 'total'을 'total'로 유지합니다.
+    transactions_by_month = [{'month': item['month'], 'transaction_type': item['txn_side'], 'total': item['total']} for item in transactions_by_month_data]
+    
+    # OLD-최근 거래 내역 테이블 (수입/지출 분리)
+    # recent_transactions = Transaction.objects.filter(transaction_date__range=[start_date, end_date]).order_by('-transaction_date')
+    #
+    # 최근 거래 내역 테이블 (수입/지출 분리)
+    recent_transactions_income = list(transactions.filter(txn_side='수입').order_by('-txn_date').values('txn_date', 'txn_cat__cat_type', 'txn_cont', 'txn_amount'))
+    recent_transactions_expense = list(transactions.filter(txn_side='지출').order_by('-txn_date').values('txn_date', 'txn_cat__cat_type', 'txn_cont', 'txn_amount'))
+
+    # recent_income_transactions = list(recent_transactions.filter(transaction_type='수입').values('transaction_date', 'category', 'description', 'amount'))
+    # recent_expense_transactions = list(recent_transactions.filter(transaction_type='지출').values('transaction_date', 'category', 'description', 'amount'))
+    # JSON 직렬화를 위해 필드 이름을 기존 대시보드 형식에 맞게 변경합니다.
+    recent_income_transactions = [
+        {'transaction_date': item['txn_date'].date(), 'category': item['txn_cat__cat_type'], 'description': item['txn_cont'], 'amount': item['txn_amount']}
+        for item in recent_transactions_income
+    ]
+    recent_expense_transactions = [
+        {'transaction_date': item['txn_date'].date(), 'category': item['txn_cat__cat_type'], 'description': item['txn_cont'], 'amount': item['txn_amount']}
+        for item in recent_transactions_expense
+    ]
+
+    context = {
+        'total_income': total_income,
+        'total_expense': total_expense,
+        'net_balance': net_balance,
+        'start_date': start_date.isoformat(),
+        'end_date': end_date.isoformat(),
+        # 'transactions': json.dumps(list(recent_transactions.values()), cls=CustomJSONEncoder),
+        # 'recent_income_transactions': json.dumps(recent_income_transactions, cls=CustomJSONEncoder),
+        # 'recent_expense_transactions': json.dumps(recent_expense_transactions, cls=CustomJSONEncoder),
+        # 'expense_by_category': json.dumps(expense_by_category, cls=CustomJSONEncoder),
+        # 'transactions_by_month': json.dumps(transactions_by_month, cls=CustomJSONEncoder),
+        # JSON 직렬화 시 필드명 변경
+        'recent_income_transactions': json.dumps(recent_income_transactions, cls=CustomJSONEncoder),
+        'recent_expense_transactions': json.dumps(recent_expense_transactions, cls=CustomJSONEncoder),
+        'expense_by_category': json.dumps(expense_by_category, cls=CustomJSONEncoder),
+        'transactions_by_month': json.dumps(transactions_by_month, cls=CustomJSONEncoder),
+    }
+
+    return render(request, 'dashboards/dashboard.html', context)
