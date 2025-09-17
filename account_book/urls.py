@@ -10,4 +10,6 @@ urlpatterns = [
     path("save_bulk_transactions/", views.save_bulk_transactions, name="save_bulk_transactions"),
     path("get_categories/", views.get_categories_json, name="get_categories"),
     path("search_transactions/", views.search_transactions, name="search_transactions"),
+    path('export/<int:year>/<int:month>/', views.export_monthly_transactions, name='export_monthly_transactions'),
+    path("get_categories/", views.get_categories, name="get_categories"),
 ]

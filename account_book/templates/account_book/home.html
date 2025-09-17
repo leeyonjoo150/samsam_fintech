@@ -48,10 +48,12 @@
 
 <body>
     <div class="header">
-        <div class="header-title">
-            <span class="material-icons">account_balance_wallet</span>
-            <span>삼삼 핀테크</span>
-        </div>
+        <a href="{% url 'main:index' %}" class="header-title-link">
+            <div class="header-title">
+                <span class="material-icons">account_balance_wallet</span>
+                <span>삼삼 핀테크</span>
+            </div>
+        </a>
         <div class="header-controls">
             <span class="material-icons header-icon">person</span>
         </div>
@@ -63,10 +65,6 @@
                 <span class="material-icons sidebar-icon">list</span>
                 <span>내역</span>
             </div>
-            <div class="sidebar-item">
-                <span class="material-icons sidebar-icon">settings</span>
-                <span>설정</span>
-            </div>
         </div>
         
         <!-- 날짜 -->
@@ -74,26 +72,56 @@
             <div class="content-header">
                 <div class="date-navigation" id="date-navigation-area">
                     <button class="date-navigation-button" onclick="changeDate(-1)">&lt;</button>
-                                <input type="date" id="downpanel_single_date_input" class="form-control">
+                                <span id="current-month-display" class="date-display"></span>
                     <button class="date-navigation-button" onclick="changeDate(1)">&gt;</button>
                 </div>
-                <div id="search-form-area" style="display: none;">
-                    <div class="search-form-controls">
-                        <input type="date" id="search-start-date-input" class="search-date-input">
-                        <span>~</span>
-                        <input type="date" id="search-end-date-input" class="search-date-input">
-                    </div>
-                    <div class="search-form-buttons">
-                        <button id="search-expense-btn" class="search-filter-btn">지출</button>
-                        <button id="search-income-btn" class="search-filter-btn">수입</button>
-                        <input type="number" id="search-amount-input" class="search-amount-input" placeholder="금액">
-                        <select id="search-category-select" class="search-category-select" style="display: none;">
-                            <option value="">-- 카테고리 --</option>
-                        </select>
-                        <button id="search-reset-btn" class="search-action-btn">초기화</button>
-                        <button id="execute-search-btn" class="search-action-btn">검색</button>
-                    </div>
+                
+                {% block extra_js %}
+                <script>
+                    let currentYear = new Date().getFullYear();
+                    let currentMonth = new Date().getMonth() + 1;  // JS에서는 0~11
+
+                    function updateMonthDisplay() {
+                        document.getElementById("current-month-display").textContent =
+                            `${currentYear}년 ${currentMonth}월`;
+                    }
+
+                    function changeDate(direction) {
+                        // 방향: -1 (이전 달), +1 (다음 달)
+                        currentMonth += direction;
+                        if (currentMonth < 1) {
+                            currentMonth = 12;
+                            currentYear -= 1;
+                        } else if (currentMonth > 12) {
+                            currentMonth = 1;
+                            currentYear += 1;
+                        }
+
+                        updateMonthDisplay();
+
+                        // 👉 여기서 GET 요청으로 home 다시 로드
+                        const url = `?year=${currentYear}&month=${currentMonth}`;
+                        window.location.href = url;
+                    }
+                    // 초기 화면 세팅
+                    updateMonthDisplay();
+                </script>
+                {% endblock %}
+                
+            <div id="search-form-area" style="display: none;">
+                <div class="search-form-controls">
+                    <input type="date" id="search-start-date-input" class="search-date-input">
+                    <span>~</span>
+                    <input type="date" id="search-end-date-input" class="search-date-input">
                 </div>
+                <div class="search-form-buttons">
+                    <button id="search-expense-btn" class="search-filter-btn">지출</button>
+                    <button id="search-income-btn" class="search-filter-btn">수입</button>
+                    <button id="search-reset-btn" class="search-action-btn">초기화</button>
+                    <button id="execute-search-btn" class="search-action-btn">검색</button>
+                </div>
+            </div>
+
                 <div class="header-right-icons">
                     <span class="material-icons search-icon" id="toggle-search-btn">search</span>
                     <svg xmlns="http://www.w3.org/2000/svg" 
@@ -170,18 +198,18 @@
                 </thead>
                 <tbody id="record-list">
                     {% for transaction in transactions %}
-                    <tr>
+                    <tr data-id="{{ transaction.id }}">
                         <td><input type="checkbox" data-id="{{ transaction.id }}"></td>
-                        <td>{{ transaction.use_date|date:"Y-m-d" }}</td>
-                        <td>{{ transaction.cash_side }}</td>
-                        <td>현금</td>
-                        <td>{{ transaction.cash_cat.cat_type|default:"" }}</td>
-                        <td>${{ transaction.cash_amount|intcomma }}</td>
-                        <td>{{ transaction.cash_cont }}</td>
+                        <td>{{ transaction.date|date:"Y-m-d" }}</td>
+                        <td>{{ transaction.side }}</td>
+                        <td>{{ transaction.asset_type }}</td> {# Now uses 'asset_type' from dictionary #}
+                        <td>{{ transaction.category|default:"" }}</td>
+                        <td>${{ transaction.amount|intcomma }}</td>
+                        <td>{{ transaction.content }}</td>
                         <td>
                             {{ transaction.memo|default:"" }}
-                            {% if transaction.photo %}
-                                <a href="{{ transaction.photo.url }}" target="_blank" title="사진 보기">📷</a>
+                            {% if transaction.photo_url %}
+                                <a href="{{ transaction.photo_url }}" target="_blank" title="사진 보기">📷</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -639,6 +667,9 @@
         </form>
     </div>    
 
+    <script>
+        const homeUrl = "{% url 'account_book:home' %}";
+    </script>
     <script src="{% static 'account_book/js/date.js' %}"></script>
     <script src="{% static 'account_book/js/panel.js' %}"></script>
     <script src="{% static 'account_book/js/downpanel.js' %}"></script>

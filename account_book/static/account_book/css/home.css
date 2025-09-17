@@ -111,19 +111,27 @@ body {
     background-color: #7c3aed;
     border: none;
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 15px; /* Increased padding */
     border-radius: 5px;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
 }
 
 .date-display {
-    font-size: 16px;
+    font-size: 18px; /* Slightly larger font */
     font-weight: bold;
-    color: #1f0c58;
-    border: 1px solid #4c0c5f;
+    color: #e8e4ff;
+    border: none; /* Remove border */
     border-radius: 5px;
-    padding: 5px 10px;
-    cursor: pointer;    
+    padding: 8px 15px; /* Adjusted padding */
+    cursor: pointer;
+    background-color: #5a2ea6; /* Darker purple background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition for hover */
+}
+
+.date-display:hover {
+    background-color: #7c3aed; /* Button color on hover */
 }
 
 /* ===== 통계 카드 ===== */
@@ -281,21 +289,30 @@ body {
     transform: scale(1.2);
 }
 
+/* Specific styles for search and excel icons */
 .header-right-icons {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 15px; /* Space between icons */
 }
 
-.header-right-icons .material-icons {
-    font-size: 28px;
-    color: #e0d6ff;
+.search-icon {
+    font-size: 30px; /* Increased size for search icon */
+    color: #555;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
 }
 
-.header-right-icons .material-icons:hover {
-    color: #9f67ff;
+.search-icon:hover {
+    color: #007bff; /* Example hover color */
+}
+
+.excel-icon {
+    /* SVG has inline width/height, but we can override with CSS */
+    width: 30px; /* Increased size for excel icon */
+    height: 30px;
+    color: #555; /* For consistency, though SVG fill is white */
+    cursor: pointer;
 }
 
 /* ===== 기타 ===== */
@@ -454,4 +471,9 @@ body, td, th, span, div {
 /* Hide/Show toggle */
 #date-navigation-area {
     display: flex; /* Default visible */
+}
+
+.header-title-link {
+    color: #fff; /* White color to match the header */
+    text-decoration: none; /* Remove underline */
 }

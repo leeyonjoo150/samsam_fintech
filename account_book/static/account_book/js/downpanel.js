@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('downpanel.js: DOMContentLoaded event fired.');
-    const singleDateInput = document.getElementById('downpanel_single_date_input'); // Declare singleDateInput here
+    const singleDateInput = document.getElementById('downpanel_single_date_input');
+
     // =================================================
     // Element Selectors
     // =================================================
@@ -15,7 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!table) return;
     const tbody = table.querySelector('tbody');
 
-    // New variables and fillHandle creation
+    // =================================================
+    // Variables & Helpers
+    // =================================================
     let activeCell = { row: 0, col: 0 };
     let isFilling = false;
     let startFillCell = null;
@@ -27,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getInput = (row, col) => getCell(row, col)?.querySelector('input, select');
 
     // =================================================
-    // Categories (Consolidated)
+    // Categories
     // =================================================
     const incomeCategories = ["월급", "보너스", "이자소득", "기타수입", "부수입", "용돈", "상여", "금융소득"];
     const expenseCategories = [
@@ -36,148 +39,46 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // =================================================
-    // Panel Open/Close Logic
+    // Panel Open/Close
     // =================================================
-    if (openBtn) {
-        openBtn.addEventListener('click', () => downPanel && downPanel.classList.add('open'));
-    }
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => downPanel && downPanel.classList.remove('open'));
-    }
+    if (openBtn) openBtn.addEventListener('click', () => downPanel?.classList.add('open'));
+    if (closeBtn) closeBtn.addEventListener('click', () => downPanel?.classList.remove('open'));
 
     // =================================================
-    // Single Date Input Logic (for the top date input)
+    // Single Date Input (상단 단일 입력)
     // =================================================
     if (singleDateInput) {
-        console.log('downpanel.js: Found single date input element with ID downpanel_single_date_input.');
         const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const formattedDate = `${year}-${month}-${day}`;
+        const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         singleDateInput.value = formattedDate;
-        console.log('downpanel.js: Single date input value set to', singleDateInput.value);
-
-        singleDateInput.addEventListener('change', function() {
-            console.log('downpanel.js: Single date input changed:', this.value);
-        });
-    } else {
-        console.log('downpanel.js: Could not find single date input element with ID downpanel_single_date_input.');
     }
 
     // =================================================
-    // Cell Interaction Logic (Click to Focus)
-    // =================================================
-    tbody.addEventListener('mousedown', (e) => {
-        const cell = e.target.closest('td');
-        if (!cell) return;
-
-        // Handle fill handle drag start
-        if (e.target === fillHandle) {
-            isFilling = true;
-            startFillCell = { row: cell.parentElement.rowIndex - 1, col: cell.cellIndex - 1 };
-            e.stopPropagation(); // Prevent cell selection
-            e.preventDefault(); // Prevent default browser drag behavior
-            return;
-        }
-
-        const input = cell.querySelector('input, select, .bulk-date-input');
-        console.log('Clicked cell:', cell); // Log the cell
-        console.log('Found input/select:', input); // Log the found input/select
-        if (input) {
-            input.focus();
-            console.log('Input focused:', input); // Confirm focus call
-        } else {
-            console.log('No input/select found in cell.');
-        }
-
-        // Remove active class from any other cell
-        tbody.querySelectorAll('.active').forEach(activeCell => {
-            activeCell.classList.remove('active');
-        });
-        // Add active class to the current cell
-        cell.classList.add('active');
-        activeCell = { row: cell.parentElement.rowIndex - 1, col: cell.cellIndex - 1 }; // Update activeCell
-        cell.appendChild(fillHandle); // Append fillHandle to the active cell
-    });
-
-    tbody.addEventListener('mousemove', (e) => {
-        if (!isFilling) return;
-
-        const cell = e.target.closest('td');
-        if (!cell) return;
-
-        const rowIndex = cell.parentElement.rowIndex - 1;
-        const colIndex = cell.cellIndex - 1;
-
-        // Only allow vertical fill (same column)
-        if (colIndex !== startFillCell.col) return;
-
-        endFillCell = { row: rowIndex, col: colIndex };
-
-        // Highlight cells being filled (optional, but good for UX)
-        tbody.querySelectorAll('.filling').forEach(c => c.classList.remove('filling'));
-        const minRow = Math.min(startFillCell.row, endFillCell.row);
-        const maxRow = Math.max(startFillCell.row, endFillCell.row);
-        for (let i = minRow; i <= maxRow; i++) {
-            getCell(i, startFillCell.col)?.classList.add('filling');
-        }
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isFilling && startFillCell && endFillCell) {
-            const startInput = getInput(startFillCell.row, startFillCell.col);
-            if (startInput) {
-                const startValue = startInput.value;
-                const minRow = Math.min(startFillCell.row, endFillCell.row);
-                const maxRow = Math.max(startFillCell.row, endFillCell.row);
-
-                for (let i = minRow; i <= maxRow; i++) {
-                    const targetInput = getInput(i, startFillCell.col);
-                    if (targetInput) {
-                        targetInput.value = startValue;
-                    }
-                }
-            }
-        }
-        isFilling = false;
-        startFillCell = null;
-        endFillCell = null;
-        tbody.querySelectorAll('.filling').forEach(c => c.classList.remove('filling')); // Clear highlight
-    });
-
-    // =================================================
-    // Event Binding for Rows
+    // Utility Functions
     // =================================================
     const formatDateInput = (e) => {
         let input = e.target;
         let value = input.value.replace(/[^0-9]/g, '');
-        if (value.length > 4) {
-            value = value.substring(0, 4) + '-' + value.substring(4);
-        }
-        if (value.length > 7) {
-            value = value.substring(0, 7) + '-' + value.substring(7, 9);
-        }
+        if (value.length > 4) value = value.substring(0, 4) + '-' + value.substring(4);
+        if (value.length > 7) value = value.substring(0, 7) + '-' + value.substring(7, 9);
         input.value = value;
     };
 
-    const bindRowEvents = (row) => {
-        console.log('downpanel.js: Binding events for new row.');
-        // Calendar icon click
-        // Date cell logic is now handled by a simple text input.
+    const formatNumber = (value) => {
+        if (!value) return "";
+        const num = value.toString().replace(/[^0-9]/g, "");
+        return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
 
-        // Delete row button click
-        const deleteBtn = row.querySelector('.delete-row-btn');
-        if(deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
-                row.remove();
-                updateRowNumbers();
-            });
-        }
-        
-        // Type select (수입/지출) color change and category update
+    // =================================================
+    // Row Binding
+    // =================================================
+    const bindRowEvents = (row) => {
+        console.log('downpanel.js: Binding events for new row.', row);
+
+        // 수입/지출 색상 + 카테고리
         const typeSelect = row.querySelector('.type-select');
-        if(typeSelect) {
+        if (typeSelect) {
             typeSelect.addEventListener('change', () => {
                 const categorySelect = row.querySelector(".category-select");
                 let categories = [];
@@ -203,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Amount formatting
+        // 금액 입력: 숫자만 허용 + blur 시 콤마
         const amountInput = row.querySelector('td:nth-child(6) input');
         if (amountInput) {
             amountInput.addEventListener("input", () => {
@@ -214,47 +115,81 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Date input within the table row
+        // 날짜 입력
         const rowDateInput = row.querySelector('.bulk-date-input');
         if (rowDateInput) {
-            console.log('downpanel.js: Found row date input with class bulk-date-input.');
             rowDateInput.addEventListener('input', formatDateInput);
-            rowDateInput.addEventListener('change', (e) => {
-                console.log('[FORCE STYLE] Row Date changed. Value:', e.target.value);
-                if (e.target.value) {
-                    e.target.classList.add('has-value');
-                    e.target.style.color = 'white'; // Direct style injection
-                } else {
-                    e.target.classList.remove('has-value');
-                }
-            });
-        } else {
-            console.log('downpanel.js: Could not find row date input with class bulk-date-input.');
         }
     };
 
-    // =================================================
-    // Event Listeners (Delegated for Table-wide actions)
-    // =================================================
-
-    
-
-    
-
-    
-
-    
-
-    
-    
-    const formatNumber = (value) => {
-        if (!value) return "";
-        const num = value.toString().replace(/[^0-9]/g, "");
-        return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    };
+    // 초기 행 바인딩
+    tbody.querySelectorAll('tr').forEach(row => bindRowEvents(row));
+    updateRowNumbers();
 
     // =================================================
-    // Panel Footer Buttons (Add Row, Reset, Save)
+    // Drag Fill Logic
+    // =================================================
+    tbody.addEventListener('mousedown', (e) => {
+        const cell = e.target.closest('td');
+        if (!cell) return;
+
+        if (e.target.closest('.delete-row')) return;
+
+        if (e.target === fillHandle) {
+            isFilling = true;
+            startFillCell = { row: cell.parentElement.rowIndex - 1, col: cell.cellIndex - 1 };
+            e.preventDefault();
+            return;
+        }
+
+        const input = cell.querySelector('input, select, .bulk-date-input');
+        if (input) input.focus();
+
+        tbody.querySelectorAll('.active').forEach(c => c.classList.remove('active'));
+        cell.classList.add('active');
+        activeCell = { row: cell.parentElement.rowIndex - 1, col: cell.cellIndex - 1 };
+        cell.appendChild(fillHandle);
+    });
+
+    tbody.addEventListener('mousemove', (e) => {
+        if (!isFilling) return;
+        const cell = e.target.closest('td');
+        if (!cell) return;
+
+        const rowIndex = cell.parentElement.rowIndex - 1;
+        const colIndex = cell.cellIndex - 1;
+        if (colIndex !== startFillCell.col) return;
+
+        endFillCell = { row: rowIndex, col: colIndex };
+        tbody.querySelectorAll('.filling').forEach(c => c.classList.remove('filling'));
+        const minRow = Math.min(startFillCell.row, endFillCell.row);
+        const maxRow = Math.max(startFillCell.row, endFillCell.row);
+        for (let i = minRow; i <= maxRow; i++) {
+            getCell(i, startFillCell.col)?.classList.add('filling');
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isFilling && startFillCell && endFillCell) {
+            const startInput = getCell(startFillCell.row, startFillCell.col)?.querySelector('input, select');
+            if (startInput) {
+                const startValue = startInput.value;
+                const minRow = Math.min(startFillCell.row, endFillCell.row);
+                const maxRow = Math.max(startFillCell.row, endFillCell.row);
+                for (let i = minRow; i <= maxRow; i++) {
+                    const targetInput = getCell(i, startFillCell.col)?.querySelector('input, select');
+                    if (targetInput) targetInput.value = startValue;
+                }
+            }
+        }
+        isFilling = false;
+        startFillCell = null;
+        endFillCell = null;
+        tbody.querySelectorAll('.filling').forEach(c => c.classList.remove('filling'));
+    });
+
+    // =================================================
+    // Panel Footer Buttons
     // =================================================
     const baseRowHTML = `
       <th></th>
@@ -284,49 +219,33 @@ document.addEventListener('DOMContentLoaded', () => {
       <td><input type="text"></td>
       <td><input type="text"></td>
       <td><input type="text"></td>
-      <td>
-        <button class="delete-row-btn">✖</button>
-      </td>
+      <td><button class="delete-row">×</button></td>
     `;
 
-    const updateRowNumbers = () => {
+    function updateRowNumbers() {
         tbody.querySelectorAll('tr').forEach((row, i) => {
             const th = row.querySelector("th");
             if (th) th.textContent = i + 1;
         });
-    };
+    }
 
-    const createNewRow = () => {
+    function createNewRow() {
         const newRow = tbody.insertRow();
         newRow.innerHTML = baseRowHTML;
-        console.log('downpanel.js: newRow.innerHTML after creation:', newRow.innerHTML);
         bindRowEvents(newRow);
+        updateRowNumbers();
         return newRow;
     }
 
-    if (addRowBtn) {
-        addRowBtn.addEventListener("click", () => {
-            createNewRow();
-            updateRowNumbers();
-        });
-    }
+    if (addRowBtn) addRowBtn.addEventListener("click", () => createNewRow());
+    if (resetBtn) resetBtn.addEventListener("click", () => {
+        tbody.innerHTML = "";
+        for (let i = 0; i < 10; i++) createNewRow();
+    });
 
-    if (resetBtn) {
-        resetBtn.addEventListener("click", () => {
-            tbody.innerHTML = ""; // Clear table
-            for (let i = 0; i < 10; i++) {
-                createNewRow();
-            }
-            updateRowNumbers();
-        });
-    }
-    
-    // Bind events to initially existing rows
-    tbody.querySelectorAll('tr').forEach(bindRowEvents);
-    updateRowNumbers();
-    
-
+    // =================================================
     // Save Bulk Transactions
+    // =================================================
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
             const tableRows = tbody.querySelectorAll('tr');
@@ -336,47 +255,28 @@ document.addEventListener('DOMContentLoaded', () => {
             let hasError = false;
 
             for (const row of tableRows) {
-                const typeSelect = row.cells[1].querySelector('select');
-                const dateInput = row.cells[2].querySelector('input');
-                const assetSelect = row.cells[3].querySelector('select');
-                const categorySelect = row.cells[4].querySelector('select');
-                const amountInput = row.cells[5].querySelector('input');
-                const contentInput = row.cells[6].querySelector('input');
-                const memoInput = row.cells[7].querySelector('input');
+                const type = row.cells[1].querySelector('select')?.value || '';
+                const date = row.cells[2].querySelector('input')?.value.trim() || '';
+                const asset = row.cells[3].querySelector('select')?.value || '';
+                const category = row.cells[4].querySelector('select')?.value || '';
+                const amount = row.cells[5].querySelector('input')?.value.replace(/,/g, '') || '';
+                const content = row.cells[6].querySelector('input')?.value || '';
+                const memo = row.cells[7].querySelector('input')?.value || '';
 
-                const type = typeSelect ? typeSelect.value : '';
-                const amount = amountInput ? amountInput.value.replace(/,/g, '') : '';
-                const date = dateInput ? dateInput.value.trim() : '';
-
-                // Process only rows that have at least a type or an amount
                 if (type || amount) {
-                    // Validation check
                     if (!type || !amount || !date || !dateRegex.test(date)) {
-                        alert('입력된 행의 날짜, 구분, 금액을 확인해주세요.\n날짜는 YYYY-MM-DD 형식이어야 합니다.');
-                        // Highlight the problematic row/cell if desired
-                        if (dateInput) dateInput.focus();
+                        alert('날짜, 구분, 금액을 확인해주세요 (YYYY-MM-DD 형식).');
+                        row.cells[2].querySelector('input')?.focus();
                         hasError = true;
-                        break; // Stop processing further rows
+                        break;
                     }
 
-                    transactions.push({
-                        type: type,
-                        date: date,
-                        asset: assetSelect ? assetSelect.value : '',
-                        category: categorySelect ? categorySelect.value : '',
-                        amount: amount,
-                        content: contentInput ? contentInput.value : '',
-                        memo: memoInput ? memoInput.value : '',
-                    });
+                    transactions.push({ type, date, asset, category, amount, content, memo });
                 }
             }
 
-            if (hasError) {
-                return; // Stop the save process
-            }
-
-            if (transactions.length === 0) {
-                alert('저장할 내역이 없습니다.');
+            if (hasError || transactions.length === 0) {
+                if (!hasError) alert('저장할 내역이 없습니다.');
                 return;
             }
 
@@ -386,31 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,
                 },
-                body: JSON.stringify({ transactions: transactions }),
+                body: JSON.stringify({ transactions }),
             })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().catch(() => response.text()).then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     alert('저장되었습니다.');
                     window.location.reload();
                 } else {
-                    alert('저장 중 오류가 발생했습니다: ' + (data.error || '알 수 없는 서버 오류'));
+                    alert('저장 실패: ' + (data.error || '알 수 없는 오류'));
                 }
             })
-            .catch(error => {
-                console.error('Error:', error);
-                let errorMessage = '알 수 없는 오류가 발생했습니다.';
-                if (typeof error === 'string') {
-                    errorMessage = error; // HTML error page content
-                } else if (error && error.error) {
-                    errorMessage = error.error; // JSON error from the view
-                }
-                alert('저장 중 오류가 발생했습니다: ' + errorMessage);
+            .catch(err => {
+                console.error('Error:', err);
+                alert('저장 중 오류 발생: ' + (err.message || err));
             });
         });
     }
