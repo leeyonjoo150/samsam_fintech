@@ -346,11 +346,11 @@
         if (monthlyCtx && Array.isArray(monthlyData) && monthlyData.length > 0) {
             const months = [...new Set(monthlyData.map(d => d.month))].sort();
             const incomeSeries = months.map(month => {
-                const item = monthlyData.find(d => d.month === month && d.transaction_type === '수입');
+                const item = monthlyData.find(d => d.month === month && d.transaction_type === '입금');
                 return item ? item.total : 0;
             });
             const expenseSeries = months.map(month => {
-                const item = monthlyData.find(d => d.month === month && d.transaction_type === '지출');
+                const item = monthlyData.find(d => d.month === month && d.transaction_type === '출금');
                 return item ? item.total : 0;
             });
 

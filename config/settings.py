@@ -156,6 +156,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/accauth/login/'
 
+# 세션 타임아웃 설정 (1시간 = 3600초)
+SESSION_COOKIE_AGE = 3600
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 

@@ -1,43 +1,33 @@
 {% extends 'common/base.html' %}
+{% load static %}
 {% block content %}
-<div class="container text-center mt-5">
-    <h1>메인페이지입니다.</h1>
-    <p class="lead">메인페이지 나중에 만들어야 함.</p>
-    <p class="lead">메뉴바도 디자인만 대충 해놨음. 나중에 링크나 로그인이나 이것저것 수정 해야 함.</p>
-    <p class="lead">앱 만들때 통일성을 주기 위해 대략적인 디자인 해서 css파일 만들어놨음. 밑에 버튼이나 폼같은거 디자인 참고해주시면 좋아요.</p>
-    <p class="lead">공용 static 폴더에 css 분리해뒀습니다.</p>
-    <p class="lead">공용으로 공유할 static 내용이 아니라 자기가 만드는 앱 내부에서만 적용되는 static 내용들은 앱 내부에 static 폴더 각자 만들어서 사용해주시면 됩니다.</p>
-    <p class="lead"></p>
+<link rel="stylesheet" href="{% static 'main/css/style.css' %}">
 
-    <button class="pretty-button mt-4">자세히 알아보기</button>
-</div>
+<div class="container">
+    <div class="hero-section">
+        <h1>삼삼핀테크에 오신 것을 환영합니다!</h1>
+        <p class="lead">
+            삼삼핀테크는 여러분의 스마트한 금융 생활을 위한 올인원 플랫폼입니다.
+            저희 서비스는 다음과 같은 기능을 제공합니다:
+        </p>
+    </div>
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">입력폼 템플릿</h2>
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <form>
-                <div class="mb-3">
-                    <label for="exampleInputName" class="form-label">이름</label>
-                    <input type="text" class="form-control" id="exampleInputName" placeholder="이름을 입력하세요">
-                </div>
-                <div class="mb-3">
-                    <label for="exampleInputEmail" class="form-label">이메일 주소</label>
-                    <input type="email" class="form-control" id="exampleInputEmail" placeholder="name@example.com">
-                </div>
-                <div class="mb-3">
-                    <label for="exampleInputPassword" class="form-label">비밀번호</label>
-                    <input type="password" class="form-control" id="dexampleInputPassword" placeholder="비밀번호를 입력하세요">
-                </div>
-                <div class="mb-3">
-                    <label for="exampleFormControlTextarea" class="form-label">메시지</label>
-                    <textarea class="form-control" id="exampleFormControlTextarea" rows="3" placeholder="메시지를 입력하세요"></textarea>
-                </div>
-                <div class="d-grid gap-2">
-                    <button type="submit" class="pretty-button">제출하기</button>
-                </div>
-            </form>
+        <div class="col-lg-8">
+            <ul class="feature-list">
+                <li><strong>금융 데이터 및 투자 정보:</strong> 주식, 환율 등 다양한 금융 데이터를 확인하고 투자 정보를 얻을 수 있습니다.</li>
+                <li><strong>계좌 관리 및 송금:</strong> 여러 계좌를 효율적으로 관리하고 간편하게 송금할 수 있습니다.</li>
+                <li><strong>가계부 작성:</strong> 수입과 지출을 기록하여 재정 상태를 한눈에 파악하고 관리할 수 있습니다.</li>
+                <li><strong>대시보드:</strong> 모든 금융 활동을 시각적으로 요약하여 보여주는 대시보드를 통해 재정 현황을 쉽게 이해할 수 있습니다.</li>
+            </ul>
         </div>
+    </div>
+
+    <div class="text-center mt-5 mb-5">
+        <p class="lead">
+            삼삼핀테크와 함께 더욱 편리하고 현명한 금융 생활을 시작해보세요!
+        </p>
+        
     </div>
 </div>
 {% endblock %}
