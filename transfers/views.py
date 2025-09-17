@@ -287,24 +287,23 @@ def transfer_success(request, transaction_id):
 @csrf_exempt
 def get_account_info(request):
     """AJAX로 계좌 정보 조회"""
-    if request.method == 'GET':
-        account_num = request.GET.get('account_num')
+    if request.method == 'POST':
+        account_num = request.POST.get('account_num')
         
         try:
             account = Account.objects.get(acc_num=account_num)
             return JsonResponse({
                 'success': True,
-                'account_holder': account.acc_user_name.username,
-                'bank_name': '우리은행',  # 실제로는 계좌의 은행 정보
-                'balance': str(account.acc_money)
+                'owner_name': account.acc_user_name.user_name,
+                'bank_name': account.get_acc_bank_display(),
             })
         except Account.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': '계좌를 찾을 수 없습니다.'
+                'message': '계좌를 찾을 수 없습니다.'
             })
     
-    return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
+    return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
 
 @login_required
 def transfer_confirmation(request):

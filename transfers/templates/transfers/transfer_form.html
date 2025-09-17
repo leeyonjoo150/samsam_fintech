@@ -67,9 +67,6 @@
                         <button type="button" class="btn btn-primary flex-fill" onclick="validateAndSubmit()">
                             <i class="bi bi-arrow-right"></i> 확인
                         </button>
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-send"></i> 송금
-                        </button>
                     </div>
                 </form>
             </div>
@@ -121,10 +118,12 @@ function validateAndSubmit() {
                              `받는 분: ${data.owner_name}\n` + 
                              `은행: ${data.bank_name}\n` + 
                              `계좌: ${toAccount}\n` + 
-                             `금액: ${parseInt(amount).toLocaleString()}원\n\n` + 
+                             `금액: ${parseInt(amount.replace(/,/g, '')).toLocaleString()}원\n\n` + 
                              `송금하시겠습니까?`;
             
             if (confirm(confirmMsg)) {
+                const amountInput = document.getElementById('amount');
+                amountInput.value = amountInput.value.replace(/,/g, '');
                 form.submit();
             }
         } else {
