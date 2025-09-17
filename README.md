@@ -151,39 +151,39 @@ samsam_fintech
 
 ### manage_account, transfers
 
-![송금 결과](media/photos/2025/송금 결과.png)
+![송금 결과](images/송금 결과.png)
 
-![자산관리 리스트](media/photos/2025/자산관리 리스트.png)
+![자산관리 리스트](images/자산관리 리스트.png)
 
-![자산관리 송금1](media/photos/2025/자산관리 송금1.png)
+![자산관리 송금1](images/자산관리 송금1.png)
 
-![자산관리 인증](media/photos/2025/자산관리 인증.png)
+![자산관리 인증](images/자산관리 인증.png)
 
-![자산관리 메인](media/photos/2025/자산관리메인.png)
+![자산관리 메인](images/자산관리메인.png)
 
 
 ### financial_data
 
 #### 금융데이터 검색
-![금융데이터 검색](media/photos/2025/금융데이터 검색.png)
+![금융데이터 검색](images/금융데이터 검색.png)
 
 ### account_book
 
-![가계부1](media/photos/2025/가계부1.png)
+![가계부1](images/가계부1.png)
 
-![가계부2](media/photos/2025/가계부2.png)
+![가계부2](images/가계부2.png)
 
-![가계부3](media/photos/2025/가계부3.png)
+![가계부3](images/가계부3.png)
 
-![가계부4](media/photos/2025/가계부4.png)
+![가계부4](images/가계부4.png)
 
-![가계부5](media/photos/2025/가계부5.png)
+![가계부5](images/가계부5.png)
 
-![가계부6](media/photos/2025/가계부6.png)
+![가계부6](images/가계부6.png)
 
-![가계부7](media/photos/2025/가계부7.png)
+![가계부7](images/가계부7.png)
 
-![가계부8](media/photos/2025/가계부8.png)
+![가계부8](images/가계부8.png)
 
 
 ## ERD 다이어그램
