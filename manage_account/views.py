@@ -55,7 +55,10 @@ def account_list(request) :
 
     # 계좌 목록에 최신 잔액을 주석으로 추가 (TransactionAccount가 없으면 acc_money 사용)
     accounts = Account.objects.filter(acc_user_name=request.user).annotate(
-        latest_balance=Subquery(latest_transaction_balance)
+        latest_balance=Coalesce(
+            Subquery(latest_transaction_balance, output_field=DecimalField()),
+            'acc_money'
+        )
     )
     
     # 총 자산 계산
@@ -83,7 +86,7 @@ def account_detail(request, pk) :
 
     # 계좌의 전체 거래 내역 중 가장 최신 잔액을 가져옵니다.
     absolute_latest_transaction = TransactionAccount.objects.filter(my_acc=account).order_by('-txn_date').first()
-    latest_balance = absolute_latest_transaction.txn_balance if absolute_latest_transaction else 0
+    latest_balance = absolute_latest_transaction.txn_balance if absolute_latest_transaction else account.acc_money
 
     # 필터링된 거래 내역을 가져옵니다.
     filtered_transactions = TransactionAccount.objects.filter(my_acc=account)
@@ -134,8 +137,8 @@ def account_create(request):
             # Encrypt the password
             account.acc_pw = make_password(form.cleaned_data['acc_pw'])
 
-            account.acc_user_name = request.user
-
+            account.acc_money = 1000000
+            
             account.save()
             return redirect('manage_account:account_list')
     else:

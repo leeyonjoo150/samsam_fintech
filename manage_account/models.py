@@ -32,7 +32,7 @@ class Account(models.Model):
         related_name='accounts',
         verbose_name='소유자'
     )
-    acc_money = models.DecimalField('잔액', max_digits=12, decimal_places=2, default=0)
+    acc_money = models.DecimalField('잔액', max_digits=12, decimal_places=2, default=1000000)
     created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):

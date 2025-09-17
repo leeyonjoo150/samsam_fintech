@@ -11,7 +11,7 @@
             <!-- 총 자산 섹션 -->
             <div class="p-3 bg-light rounded-3 shadow-sm mb-5">
                 <h4 class="fw-bold">총 자산</h4>
-                <p class="fs-4">{{ total_assets|intcomma }}원</p>
+                <p class="fs-4">{{ total_assets|floatformat:0|intcomma }}원</p>
             </div>
         </div>
     </div>
@@ -33,7 +33,7 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center">
-                        <span class="fs-4 fw-bold text-dark me-3">{{ acc.latest_balance|default_if_none:0|intcomma }}원</span>
+                        <span class="fs-4 fw-bold text-dark me-3">{{ acc.latest_balance|default_if_none:0|floatformat:0|intcomma }}원</span>
                         <a href="{% url 'transfers:transfer_form' %}" class="btn pretty-button-small">송금</a>
                     </div>
                 </div>
