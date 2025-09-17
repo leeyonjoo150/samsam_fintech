@@ -5,6 +5,7 @@ from django.conf import settings
 import os
 from PIL import Image
 from datetime import date, datetime
+from django.utils import timezone
 
 # Create your models here.
 # 마이그레이션 명령어:
@@ -24,13 +25,14 @@ class Account(models.Model):
     
     acc_bank = models.CharField('은행', max_length=5, choices=BANK_CHOICES)
     acc_num = models.CharField('계좌번호', max_length=50, unique=True)
-    acc_pw = models.CharField('계좌비밀번호', max_length=4)
+    acc_pw = models.CharField('계좌비밀번호', max_length=128)
     acc_user_name = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='accounts',
         verbose_name='소유자'
     )
+    acc_money = models.DecimalField('잔액', max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):

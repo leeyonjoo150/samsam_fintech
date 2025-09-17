@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'financial_data',
     'manage_account',
     'acc_auth',
-    'main'
+    'main',
+    'transfers',
 ]
 
 AUTH_USER_MODEL = 'acc_auth.User'
@@ -139,6 +140,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+LOGIN_URL = '/accauth/login/'
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -152,6 +155,3 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
-
-#로그인 url 추가
-LOGIN_URL = '/accauth/login/'

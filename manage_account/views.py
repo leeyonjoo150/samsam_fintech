@@ -1,11 +1,11 @@
 import csv
 import re
 from urllib.parse import quote
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.http import HttpResponse
 from .models import Account, TransactionAccount
-from django.db.models import OuterRef, Subquery, Sum, Q
-from django.shortcuts import get_object_or_404, render, redirect
+from django.db.models import OuterRef, Subquery, Sum, Q, DecimalField
+from django.db.models.functions import Coalesce
 from .forms import AccountModelForm
 from acc_auth.models import User # User 모델의 위치에 따라 달라짐
 from django.contrib.auth.decorators import login_required
@@ -53,9 +53,9 @@ def account_list(request) :
         my_acc=OuterRef('pk')
     ).order_by('-txn_date').values('txn_balance')[:1]
 
-    # 현재 로그인한 사용자의 계좌만 가져오기
-    accounts = Account.objects.filter(acc_user_name=request.user).annotate(
-        latest_balance=Subquery(latest_transaction_balance)
+    # 계좌 목록에 최신 잔액을 주석으로 추가 (TransactionAccount가 없으면 acc_money 사용)
+    accounts = Account.objects.annotate(
+        latest_balance=Coalesce(Subquery(latest_transaction_balance), 'acc_money', output_field=DecimalField())
     )
     
     # 총 자산 계산
@@ -128,7 +128,10 @@ def account_create(request):
         if form.is_valid():
             account = form.save(commit=False)
             
-            # 비밀번호를 암호화하여 저장
+            # Set the user to the currently logged-in user
+            account.acc_user_name = request.user
+            
+            # Encrypt the password
             account.acc_pw = make_password(form.cleaned_data['acc_pw'])
 
             account.acc_user_name = request.user
@@ -193,7 +196,7 @@ def export_transactions_csv(request, pk):
     filename = f"{account_identifier}_거래내역_{timestamp}.csv"
 
     # 파일명에 포함될 수 없는 특수문자 제거 (안전장치)
-    filename = re.sub(r'[\\/*?:\"<>|]', "", filename)
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
 
     # /// 파일명 생성 로직 끝 ///
 
