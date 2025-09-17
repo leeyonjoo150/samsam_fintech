@@ -7,7 +7,7 @@
     <div class="d-flex gap-3 mt-4 mb-4">
         <a href="{% url 'financial_data:search_data' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">현재가 검색</a>
         <a href="{% url 'financial_data:add_stock_account' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">계좌 추가하기</a>
-        <a href="{% url 'financial_data:add_stock_holding' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">주식 추가하기</a>
+        <a href="{% url 'financial_data:add_stock_holding_new' %}" class="pretty-button flex-fill" style="text-decoration: none; padding: 15px 20px; text-align: center;">주식 추가하기</a>
     </div>
     
     {% if holdings %}
@@ -16,6 +16,7 @@
             <tr>
                 <th>계좌</th>
                 <th>종목 코드</th>
+                <th>회사명</th>
                 <th>보유 수량</th>
                 <th>매수 평균가</th>
                 <th>현재가</th>
@@ -28,6 +29,7 @@
             <tr>
                 <td>{{ stock.account_info.st_company }}<br>{{ stock.account_info.st_acc_num }}</td>
                 <td>{{ stock.ticker_code }}</td>
+                <td>{{ stock.company_name }}</td>
                 <td>{{ stock.share|intcomma }}주</td>
                 <td>{{ stock.purchase_amount|intcomma }}{{ stock.currency }}</td>
                 <td>{{ stock.current_price|intcomma }}{{ stock.currency }}</td>
