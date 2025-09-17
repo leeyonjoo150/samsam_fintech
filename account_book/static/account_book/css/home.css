@@ -111,19 +111,27 @@ body {
     background-color: #7c3aed;
     border: none;
     color: #fff;
-    padding: 6px 12px;
+    padding: 8px 15px; /* Increased padding */
     border-radius: 5px;
     cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
 }
 
 .date-display {
-    font-size: 16px;
+    font-size: 18px; /* Slightly larger font */
     font-weight: bold;
-    color: #1f0c58;
-    border: 1px solid #4c0c5f;
+    color: #e8e4ff;
+    border: none; /* Remove border */
     border-radius: 5px;
-    padding: 5px 10px;
-    cursor: pointer;    
+    padding: 8px 15px; /* Adjusted padding */
+    cursor: pointer;
+    background-color: #5a2ea6; /* Darker purple background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition for hover */
+}
+
+.date-display:hover {
+    background-color: #7c3aed; /* Button color on hover */
 }
 
 /* ===== 통계 카드 ===== */
@@ -281,21 +289,30 @@ body {
     transform: scale(1.2);
 }
 
+/* Specific styles for search and excel icons */
 .header-right-icons {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 15px; /* Space between icons */
 }
 
-.header-right-icons .material-icons {
-    font-size: 28px;
-    color: #e0d6ff;
+.search-icon {
+    font-size: 30px; /* Increased size for search icon */
+    color: #555;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
 }
 
-.header-right-icons .material-icons:hover {
-    color: #9f67ff;
+.search-icon:hover {
+    color: #007bff; /* Example hover color */
+}
+
+.excel-icon {
+    /* SVG has inline width/height, but we can override with CSS */
+    width: 30px; /* Increased size for excel icon */
+    height: 30px;
+    color: #555; /* For consistency, though SVG fill is white */
+    cursor: pointer;
 }
 
 /* ===== 기타 ===== */
@@ -375,4 +392,88 @@ body, td, th, span, div {
 .add-button:nth-child(1):hover::after {
     opacity: 1;
     transform: translateX(-50%) translateY(-5px);
+}
+
+/* Search Form Styles */
+#search-form-area {
+    display: flex;
+    flex-direction: row; /* Changed to row */
+    flex-wrap: wrap; /* Added for responsiveness */
+    gap: 15px; /* Increased gap */
+    /* padding: 10px; Removed padding */
+    /* background-color: #2a0066; Removed background color */
+    /* border-radius: 8px; Removed border-radius */
+    margin-bottom: 20px; /* Keep margin-bottom for spacing below the form */
+    align-items: center;
+    justify-content: center; /* Center items horizontally */
+}
+
+.search-form-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-date-input {
+    padding: 8px;
+    border: 1px solid #3f0d7a;
+    border-radius: 5px;
+    background-color: #1f0c58;
+    color: #e8e4ff;
+    font-size: 14px;
+}
+
+.search-form-controls span {
+    color: #e8e4ff;
+    font-weight: bold;
+}
+
+.search-form-buttons {
+    display: flex;
+    gap: 15px; /* Increased gap */
+    /* margin-top: 10px; Removed */
+}
+
+.search-filter-btn,
+.search-action-btn {
+    background-color: #7c3aed;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.search-filter-btn:hover,
+.search-action-btn:hover {
+    background-color: #9f67ff;
+}
+
+.search-amount-input {
+    padding: 8px;
+    border: 1px solid #3f0d7a;
+    border-radius: 5px;
+    background-color: #1f0c58;
+    color: #e8e4ff;
+    font-size: 14px;
+    width: 100px; /* Adjust as needed */
+    text-align: right;
+}
+
+/* Active state for filter buttons */
+.search-filter-btn.active {
+    background-color: #5a2ea6;
+    border-color: #c9b7ff;
+}
+
+/* Hide/Show toggle */
+#date-navigation-area {
+    display: flex; /* Default visible */
+}
+
+.header-title-link {
+    color: #fff; /* White color to match the header */
+    text-decoration: none; /* Remove underline */
 }

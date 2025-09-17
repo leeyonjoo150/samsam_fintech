@@ -38,26 +38,21 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
     }
 
-    // 플로팅 버튼 이벤트 등록 (페이지 로드 후 약간 지연)
-    setTimeout(() => {
-        const addButtons = document.querySelectorAll(".add-button");
-        
-        if (addButtons.length > 0 && inputPanel) {
-            // 마지막 add-button이 큰 + 버튼
-            const mainButton = addButtons[addButtons.length - 1];
-            
-            mainButton.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (inputPanel.classList.contains("open")) {
-                    inputPanel.classList.remove("open");
-                    resetPanelInputs();
-                } else {
-                    inputPanel.classList.add("open");
-                }
-            });
-        }
-    }, 100);
+    // 플로팅 버튼 이벤트 등록
+    const openSinglePanelBtn = document.getElementById("open-single-panel-btn");
+    
+    if (openSinglePanelBtn && inputPanel) {
+        openSinglePanelBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (inputPanel.classList.contains("open")) {
+                inputPanel.classList.remove("open");
+                resetPanelInputs();
+            } else {
+                inputPanel.classList.add("open");
+            }
+        });
+    }
 
     // 패널 닫기
     if (closeButton && inputPanel) {

@@ -10,14 +10,50 @@
     <link rel="stylesheet" href="{% static 'account_book/css/panel.css' %}">
     <link rel="stylesheet" href="{% static 'account_book/css/downpanel.css' %}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+    .search-results-container {
+        display: none; /* Initially hidden */
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    .search-summary {
+        display: flex;
+        flex-direction: column;
+    }
+    .search-results-text {
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    .search-period {
+        font-size: 0.9em;
+        color: #666;
+    }
+    .search-filters .filter-btn {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        padding: 5px 15px;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    .search-filters .filter-btn:hover {
+        background-color: #e0e0e0;
+    }
+</style>
 </head>
 
 <body>
     <div class="header">
-        <div class="header-title">
-            <span class="material-icons">account_balance_wallet</span>
-            <span>삼삼 가계부</span>
-        </div>
+        <a href="{% url 'main:index' %}" class="header-title-link">
+            <div class="header-title">
+                <span class="material-icons">account_balance_wallet</span>
+                <span>삼삼 핀테크</span>
+            </div>
+        </a>
         <div class="header-controls">
             <span class="material-icons header-icon">person</span>
         </div>
@@ -29,22 +65,65 @@
                 <span class="material-icons sidebar-icon">list</span>
                 <span>내역</span>
             </div>
-            <div class="sidebar-item">
-                <span class="material-icons sidebar-icon">settings</span>
-                <span>설정</span>
-            </div>
         </div>
         
         <!-- 날짜 -->
         <div class="main-content">
             <div class="content-header">
-                <div class="date-navigation">
+                <div class="date-navigation" id="date-navigation-area">
                     <button class="date-navigation-button" onclick="changeDate(-1)">&lt;</button>
-                    <input type="date" id="datePicker" class="date-display">
+                                <span id="current-month-display" class="date-display"></span>
                     <button class="date-navigation-button" onclick="changeDate(1)">&gt;</button>
                 </div>
+                
+                {% block extra_js %}
+                <script>
+                    let currentYear = new Date().getFullYear();
+                    let currentMonth = new Date().getMonth() + 1;  // JS에서는 0~11
+
+                    function updateMonthDisplay() {
+                        document.getElementById("current-month-display").textContent =
+                            `${currentYear}년 ${currentMonth}월`;
+                    }
+
+                    function changeDate(direction) {
+                        // 방향: -1 (이전 달), +1 (다음 달)
+                        currentMonth += direction;
+                        if (currentMonth < 1) {
+                            currentMonth = 12;
+                            currentYear -= 1;
+                        } else if (currentMonth > 12) {
+                            currentMonth = 1;
+                            currentYear += 1;
+                        }
+
+                        updateMonthDisplay();
+
+                        // 👉 여기서 GET 요청으로 home 다시 로드
+                        const url = `?year=${currentYear}&month=${currentMonth}`;
+                        window.location.href = url;
+                    }
+                    // 초기 화면 세팅
+                    updateMonthDisplay();
+                </script>
+                {% endblock %}
+                
+            <div id="search-form-area" style="display: none;">
+                <div class="search-form-controls">
+                    <input type="date" id="search-start-date-input" class="search-date-input">
+                    <span>~</span>
+                    <input type="date" id="search-end-date-input" class="search-date-input">
+                </div>
+                <div class="search-form-buttons">
+                    <button id="search-expense-btn" class="search-filter-btn">지출</button>
+                    <button id="search-income-btn" class="search-filter-btn">수입</button>
+                    <button id="search-reset-btn" class="search-action-btn">초기화</button>
+                    <button id="execute-search-btn" class="search-action-btn">검색</button>
+                </div>
+            </div>
+
                 <div class="header-right-icons">
-                    <span class="material-icons search-icon">search</span>
+                    <span class="material-icons search-icon" id="toggle-search-btn">search</span>
                     <svg xmlns="http://www.w3.org/2000/svg" 
                         width="24" height="24" 
                         viewBox="0 0 24 24" 
@@ -52,6 +131,19 @@
                         <rect width="24" height="24" fill="#21A366" rx="4"/>
                         <path d="M7 7h3v2H7v6h3v2H7v2H5V5h2v2zM11 9h2v6h-2zM15 9h2v6h-2z" fill="white"/>
                     </svg>      
+                </div>
+            </div>
+            <!-- 검색 결과 -->
+            <div class="search-results-container">
+                <div class="search-summary">
+                    <div class="search-results-text">검색결과 : <span id="search-count">n</span>건</div>
+                    <div class="search-period">기간 <span id="search-start-date">년.월.일</span> ~ <span id="search-end-date">년.월.일</span></div>
+                </div>
+                <div class="search-filters">
+                    <button class="filter-btn">자산</button>
+                    <button class="filter-btn">지출</button>
+                    <button class="filter-btn">수입</button>
+                    <button class="filter-btn">금액</button>
                 </div>
             </div>
     <!-- 메인 콘텐츠 박스 -->
@@ -106,18 +198,18 @@
                 </thead>
                 <tbody id="record-list">
                     {% for transaction in transactions %}
-                    <tr>
+                    <tr data-id="{{ transaction.id }}">
                         <td><input type="checkbox" data-id="{{ transaction.id }}"></td>
-                        <td>{{ transaction.use_date|date:"Y-m-d" }}</td>
-                        <td>{{ transaction.cash_side }}</td>
-                        <td>현금</td>
-                        <td>{{ transaction.cash_cat.cat_type|default:"" }}</td>
-                        <td>${{ transaction.cash_amount|intcomma }}</td>
-                        <td>{{ transaction.cash_cont }}</td>
+                        <td>{{ transaction.date|date:"Y-m-d" }}</td>
+                        <td>{{ transaction.side }}</td>
+                        <td>{{ transaction.asset_type }}</td> {# Now uses 'asset_type' from dictionary #}
+                        <td>{{ transaction.category|default:"" }}</td>
+                        <td>${{ transaction.amount|intcomma }}</td>
+                        <td>{{ transaction.content }}</td>
                         <td>
                             {{ transaction.memo|default:"" }}
-                            {% if transaction.photo %}
-                                <a href="{{ transaction.photo.url }}" target="_blank" title="사진 보기">📷</a>
+                            {% if transaction.photo_url %}
+                                <a href="{{ transaction.photo_url }}" target="_blank" title="사진 보기">📷</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -135,7 +227,7 @@
         <button class="add-button" id="open-down-panel-btn">
             <span class="material-icons">playlist_add</span>
         </button>
-        <button class="add-button add-button-large">
+        <button class="add-button add-button-large" id="open-single-panel-btn">
             <span class="material-icons">add</span>
         </button>
     </div>
@@ -169,7 +261,7 @@
                         <tr>
                             <th>1</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
@@ -177,21 +269,14 @@
                             </td>    
                             <!-- C열 (날짜) -->
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <!-- D열 (자산종류) -->
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -209,33 +294,26 @@
                         <tr>
                             <th>2</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
                             <td>
                             <select class="category-select">
-                                <option value="">-분류--</option>
+                                <option value="">--분류--</option>
                             </select>
                             </td>
                             <td><input type="text"></td>
@@ -246,27 +324,20 @@
                         <tr>
                             <th>3</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -283,27 +354,20 @@
                         <tr>
                             <th>4</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -320,27 +384,20 @@
                         <tr>
                             <th>5</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -357,27 +414,20 @@
                         <tr>
                             <th>6</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -394,27 +444,20 @@
                         <tr>
                             <th>7</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -431,27 +474,20 @@
                         <tr>
                             <th>8</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -468,27 +504,20 @@
                         <tr>
                             <th>9</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -505,27 +534,20 @@
                         <tr>
                             <th>10</th>
                             <td> <!-- B1 -->
-                                <select>
+                                <select class="type-select">
                                     <option value="">--선택--</option>
                                     <option value="수입">수입</option>
                                     <option value="지출">지출</option>
                                 </select>
                             </td>
                             <td class="date-cell">
-                                <input type="date" class="date-input">
-                                <span class="calendar-icon">
-                                    <!-- 흰색 심플 캘린더 아이콘 -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" viewBox="0 0 24 24">
-                                        <path d="M7 2v2H5a2 2 0 0 0-2 2v2h18V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7zm14 8H3v10
-                                        a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V10z"/>
-                                    </svg>
-                                </span>
+                                <input type="text" class="bulk-date-input">
+                                
                             </td>
                             <td>
                                 <select>
                                 <option value="">--선택--</option>
                                 <option value="현금">현금</option>
-                                <option value="은행">은행</option>
                                 <option value="카드">카드</option>
                                 </select>
                             </td>
@@ -600,11 +622,10 @@
         <!-- 자산종류 선택박스 -->
         <div class="asset-section">
             <p class="asset-label">자산종류</p>
-            <select id="asset-select" class="asset-dropdown">
+            <select id="asset-select" class="asset-dropdown" name="asset_type">
                 <option value="" disabled selected></option> <!-- 처음엔 빈칸 -->
-                <option value="cash">현금</option>
-                <option value="bank">은행</option>
-                <option value="card">카드</option>
+                <option value="현금">현금</option>
+                <option value="카드">카드</option>
             </select>
         </div>
         <!-- 내용 입력 -->
@@ -635,6 +656,9 @@
         </form>
     </div>    
 
+    <script>
+        const homeUrl = "{% url 'account_book:home' %}";
+    </script>
     <script src="{% static 'account_book/js/date.js' %}"></script>
     <script src="{% static 'account_book/js/panel.js' %}"></script>
     <script src="{% static 'account_book/js/downpanel.js' %}"></script>

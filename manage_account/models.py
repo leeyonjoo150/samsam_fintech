@@ -216,6 +216,12 @@ class TransactionCash(models.Model):
         related_name='cash_transactions',
         verbose_name='사용자'
     )
+    
+    ASSET_TYPE_CHOICES = [
+        ('현금', '현금'),
+        ('카드', '카드'),
+    ]
+    asset_type = models.CharField('자산종류', max_length=10, choices=ASSET_TYPE_CHOICES, default='현금')
 
     def __str__(self):
         return f"{self.cash_side}: {self.cash_amount:,}원 현금거래완료"
