@@ -54,8 +54,8 @@ def account_list(request) :
     ).order_by('-txn_date').values('txn_balance')[:1]
 
     # 계좌 목록에 최신 잔액을 주석으로 추가 (TransactionAccount가 없으면 acc_money 사용)
-    accounts = Account.objects.annotate(
-        latest_balance=Coalesce(Subquery(latest_transaction_balance), 'acc_money', output_field=DecimalField())
+    accounts = Account.objects.filter(acc_user_name=request.user).annotate(
+        latest_balance=Subquery(latest_transaction_balance)
     )
     
     # 총 자산 계산
