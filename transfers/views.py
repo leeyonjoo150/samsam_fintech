@@ -62,6 +62,7 @@ def dashboard(request):
     }
     return render(request, 'transfers/dashboard.html', context)
 
+#연결 안함
 @login_required
 def transaction_history(request):
     """송금 내역 페이지"""
@@ -133,10 +134,10 @@ def verify_account_password(request):
         # If account_password is not present, it means this is the initial POST from transfer_form.
         # In this case, we should just render the password verification form.
         if not account_password:
-            context = {
-                'transfer_data': transfer_data,
-            }
-            return render(request, 'transfers/verify_password.html', context)
+             context = {
+                 'transfer_data': transfer_data,
+             }
+             return render(request, 'transfers/verify_password.html', context)
 
         # If account_password is present, proceed with validation.
         try:
@@ -198,23 +199,27 @@ def process_transfer(request, from_account, to_account, amount, description):
     try:
         with transaction.atomic():
             amount = Decimal(str(amount).replace(',', ''))
-            
-            # 잔액 확인
-            if from_account.acc_money < amount:
+
+            # 1. 실제 현재 잔액을 가져옵니다.
+            latest_from_txn = TransactionAccount.objects.filter(my_acc=from_account).order_by('-txn_date').first()
+            current_from_balance = latest_from_txn.txn_balance if latest_from_txn else from_account.acc_money
+
+            # 2. 실제 잔액과 송금액을 비교합니다.
+            if current_from_balance < amount:
                 context = {
                     'error_message': '송금할 금액이 잔액보다 큽니다.',
-                    'current_balance': from_account.acc_money,
+                    'current_balance': current_from_balance,
                     'requested_amount': amount,
                 }
                 return render(request, 'transfers/transfer_error.html', context)
-            
-            # 잔액 업데이트
+
+            # 참고: 아래 acc_money 업데이트 로직은 장기적으로는 삭제하는 것이 좋습니다.
+            # 현재는 다른 기능에 미치는 영향을 최소화하기 위해 유지합니다.
             from_account.acc_money -= amount
             to_account.acc_money += amount
-            
             from_account.save()
             to_account.save()
-            
+
             # 거래 내역 저장
             new_transaction = Transaction.objects.create(
                 from_account=from_account,
@@ -223,26 +228,30 @@ def process_transfer(request, from_account, to_account, amount, description):
                 description=description,
             )
 
+            # 3. 새로운 거래 내역의 잔액을 '실제 잔액' 기준으로 정확히 계산합니다.
+            latest_to_txn = TransactionAccount.objects.filter(my_acc=to_account).order_by('-txn_date').first()
+            current_to_balance = latest_to_txn.txn_balance if latest_to_txn else to_account.acc_money
+
             # TransactionAccount (계좌거래내역) 생성 - 출금 계좌
             TransactionAccount.objects.create(
                 txn_side='출금',
                 txn_amount=amount,
-                txn_balance=from_account.acc_money, # 업데이트된 잔액
+                txn_balance=current_from_balance - amount, # 올바른 잔액 계산
                 txn_cont=f'{to_account.acc_bank} {to_account.acc_num} 송금',
                 my_acc=from_account,
                 cpart_acc=to_account,
-                txn_cat=None # 송금은 특정 가계부 카테고리에 해당하지 않을 수 있음
+                txn_cat=None
             )
 
             # TransactionAccount (계좌거래내역) 생성 - 입금 계좌
             TransactionAccount.objects.create(
                 txn_side='입금',
                 txn_amount=amount,
-                txn_balance=to_account.acc_money, # 업데이트된 잔액
+                txn_balance=current_to_balance + amount, # 올바른 잔액 계산
                 txn_cont=f'{from_account.acc_bank} {from_account.acc_num} 입금',
                 my_acc=to_account,
                 cpart_acc=from_account,
-                txn_cat=None # 송금은 특정 가계부 카테고리에 해당하지 않을 수 있음
+                txn_cat=None
             )
             
             messages.success(request, f'{to_account.acc_user_name}님께 {amount:,}원을 송금했습니다.')
@@ -287,24 +296,23 @@ def transfer_success(request, transaction_id):
 @csrf_exempt
 def get_account_info(request):
     """AJAX로 계좌 정보 조회"""
-    if request.method == 'GET':
-        account_num = request.GET.get('account_num')
+    if request.method == 'POST':
+        account_num = request.POST.get('account_num')
         
         try:
             account = Account.objects.get(acc_num=account_num)
             return JsonResponse({
                 'success': True,
-                'account_holder': account.acc_user_name.username,
-                'bank_name': '우리은행',  # 실제로는 계좌의 은행 정보
-                'balance': str(account.acc_money)
+                'owner_name': account.acc_user_name.user_name,
+                'bank_name': account.get_acc_bank_display(),
             })
         except Account.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': '계좌를 찾을 수 없습니다.'
+                'message': '계좌를 찾을 수 없습니다.'
             })
     
-    return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
+    return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'})
 
 @login_required
 def transfer_confirmation(request):
@@ -345,6 +353,7 @@ def transfer_confirmation(request):
     
     return redirect('transfers:transfer_form')
 
+#연결 안함
 @login_required 
 def account_detail(request, account_num):
     """계좌 상세 정보 페이지"""
@@ -378,6 +387,7 @@ def account_detail(request, account_num):
     
     return render(request, 'accounts/account_detail.html', context)
 
+#연결 안함
 @login_required
 def create_account(request):
     """새 계좌 생성"""
@@ -415,6 +425,7 @@ def create_account(request):
     
     return render(request, 'accounts/create_account.html')
 
+#연결 안함
 @login_required
 def change_account_password(request, account_num):
     """계좌 비밀번호 변경"""
