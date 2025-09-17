@@ -238,12 +238,14 @@ body {
 
 /* ===== 플로팅 버튼 ===== */
 .add-button-container {
-    position: absolute;
-    right: 250px;
-    bottom: 30px;
+    position: fixed; /* Changed from absolute to fixed */
+    right: 80px;     /* Moved even further left */
+    bottom: 60px;    /* Moved further up */
     display: flex;
+    flex-direction: column; /* Stack buttons vertically */
     gap: 15px;
     align-items: flex-end;
+    z-index: 1000; /* Ensure it stays on top of other content */
 }
 
 .add-button {
