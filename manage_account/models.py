@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from acc_auth.models import User
 from django.conf import settings
 import os
@@ -31,7 +32,7 @@ class Account(models.Model):
         related_name='accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.acc_bank} {self.acc_num} ({self.acc_user_name})"
@@ -53,7 +54,7 @@ class StockAccount(models.Model):
         related_name='stock_accounts',
         verbose_name='소유자'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.st_company} {self.st_acc_num} ({self.st_user_id})"
@@ -81,7 +82,7 @@ class StockContent(models.Model):
         related_name='stock_contents',
         verbose_name='주식용계좌'
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return f"{self.ticker_code} {self.share}주 매수완료"
@@ -114,7 +115,7 @@ class AccountBookCategory(models.Model):
         max_length=20, 
         choices=CATEGORY_CHOICES
     )
-    created_at = models.DateTimeField('생성일', auto_now_add=True)
+    created_at = models.DateTimeField('생성일', default=timezone.now)
     
     def __str__(self):
         return self.cat_type + " 카테고리"
@@ -153,7 +154,9 @@ class TransactionAccount(models.Model):
     # txn_date 필드에 auto_now_add=False로 설정하여 수동으로 날짜를 지정할 수 있도록 수정
     # auto_now_add=True로 설정하면 객체 생성 시점의 시간이 자동으로 입력되어, 데이터 마이그레이션 시 원하는 날짜로 설정할 수 없습니다.
     # txn_date = models.DateTimeField('거래날짜', default=timezone.now, blank=True, null=True)
-    txn_date = models.DateTimeField('거래날짜', blank=True, null=True)
+    # txn_date = models.DateTimeField('거래날짜', blank=True, null=True) - Migration 할때는 이것을 사용함.  
+    # 아래 코드는 merge과정에서 선택하였으나 마이그레이션하면 오늘 날짜로 들어가는 문제 발생함. 문제 있으면 위의 코드로 대체 필요함. 
+    txn_date = models.DateTimeField('거래날짜', default=timezone.now)
     # txn_date = models.DateTimeField('거래날짜', auto_now_add=True)
     txn_cat = models.ForeignKey(
         AccountBookCategory,
@@ -181,7 +184,7 @@ class TransactionCash(models.Model):
     
     cash_side = models.CharField('방식', max_length=10, choices=CASH_SIDE_CHOICES)
     cash_amount = models.IntegerField('금액')
-    use_date = models.DateTimeField('사용날짜', auto_now_add=True)
+    use_date = models.DateTimeField('사용날짜', default=timezone.now)
     cash_balance = models.IntegerField('잔액')
     cash_cont = models.CharField('내용', max_length=300, null=True, blank=True)
     cash_cat = models.ForeignKey(

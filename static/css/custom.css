@@ -88,3 +88,61 @@ body {
 textarea.form-control {
     min-height: 100px; /* 텍스트 에어리어 최소 높이 */
 }
+
+.dropdown-toggle::after {
+    display: none;
+}
+
+/* ==========================================================================
+   Dropdown Menu Styles
+   ========================================================================== */
+.dropdown-menu {
+    background-color: #6964e8; /* Approximates the nav-link hover color */
+    border: none; /* Remove default border */
+}
+
+.dropdown-item {
+    color: #FFFFFF !important; /* White text */
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: #8784f0; /* Lighter version for hover */
+    color: #FFFFFF !important; /* Ensure text stays white */
+}
+
+.navbar-nav .dropdown-menu {
+    margin-top: 8px; /* Add margin to prevent overlap with a more specific selector */
+}
+
+/* ==========================================================================
+   Custom Purple Theme for Buttons and Pagination
+   ========================================================================== */
+
+/* Custom Purple Button */
+.btn-purple {
+    background-color: #6a11cb;
+    border-color: #6a11cb;
+    color: #ffffff;
+}
+
+.btn-purple:hover, .btn-purple:focus {
+    background-color: #5a0fb1; /* Darker purple */
+    border-color: #530e9f;
+    color: #ffffff;
+}
+
+/* Pagination Purple Theme */
+.pagination .page-link {
+    color: #6a11cb;
+}
+
+.pagination .page-link:hover {
+    color: #4e0c8f;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #6a11cb;
+    border-color: #6a11cb;
+    color: #ffffff;
+}

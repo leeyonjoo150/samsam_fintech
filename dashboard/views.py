@@ -4,9 +4,11 @@ from django.shortcuts import render
 from django.db.models import Sum, F
 # from .models import Transaction   # 같은 앱 내의 모델 import - dashboard 앱 테스트를 위해 만든 모델 import
 from django.contrib.auth.decorators import login_required
+from urllib3 import request
 from manage_account.models import TransactionAccount, Account, AccountBookCategory # 가계부 앱 모델을 읽기 위해 import
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 from django.db.models.functions import TruncMonth
+from django.utils import timezone                       # 이 라인 전체APP Merge후 추가하였음.
 import json
 from decimal import Decimal
 import calendar # 이 라인을 추가하세요.
@@ -15,8 +17,9 @@ import calendar # 이 라인을 추가하세요.
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            return float(obj)  # Decimal을 float로 변환하여 JSON에서 숫자로 인식
-        if isinstance(obj, date):
+            return float(obj)
+        # date와 datetime 객체 모두 처리하도록 추가
+        if isinstance(obj, (date, datetime)):
             return obj.isoformat()
         return super().default(obj)
 
@@ -27,21 +30,33 @@ def dashboard_view(request):
     end_date_str = request.GET.get('end_date')
     
     # 기본 날짜 범위 설정: 현재 월
-    today = date.today()
+    today_aware = timezone.localdate() # 로컬 시간대의 오늘 날짜를 가져옵니다.
     if start_date_str:
-        start_date = date.fromisoformat(start_date_str)
+        # URL 파라미터에서 넘어온 날짜 문자열을 datetime 객체로 변환
+        start_datetime_naive = datetime.fromisoformat(start_date_str)
+        # naive datetime에 시간대 정보를 추가하여 aware datetime으로 변환
+        start_datetime = timezone.make_aware(start_datetime_naive)
     else:
-        start_date = today.replace(day=1)
+        # 현재 월의 첫째 날 0시 0분 0초를 aware datetime으로 설정
+        start_datetime = timezone.make_aware(datetime(today_aware.year, today_aware.month, 1))
 
     if end_date_str:
-        end_date = date.fromisoformat(end_date_str)
+        # URL 파라미터에서 넘어온 날짜 문자열을 datetime 객체로 변환
+        end_datetime_naive = datetime.fromisoformat(end_date_str)
+        # 해당 날짜의 마지막 시간(23:59:59.999999)을 포함하도록 1일을 더하고 aware datetime으로 변환
+        end_datetime = timezone.make_aware(end_datetime_naive + timedelta(days=1))
     else:
-        end_date = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+        # 현재 월의 마지막 날을 찾아, 그 다음 날의 자정을 aware datetime으로 설정
+        last_day_of_month = calendar.monthrange(today_aware.year, today_aware.month)[1]
+        end_datetime = timezone.make_aware(datetime(today_aware.year, today_aware.month, last_day_of_month) + timedelta(days=1))
+
+    # 이후 쿼리에는 start_datetime과 end_datetime을 사용합니다.
+    # `start_date`와 `end_date` 변수명은 이전에 사용하던 것과 다르게 설정하여 혼동을 막습니다.
         
     # 여기서 end_date에 하루를 더하여 필터링 범위를 확장합니다.
     # 이렇게 하면 end_date 하루 전체가 포함됩니다. 
     # 예를 들어, 종료일 그대로하면 2023-10-10 00:00:00 까지만 포함되어 2023-10-10일 전체가 포함되지 않음
-    end_date_inclusive = end_date + timedelta(days=1)
+    # end_date_inclusive = end_date + timedelta(days=1) -> 임시 코멘트 처리
     
     # 로그인한 사용자 계좌를 먼저 가져온다.
     # User 모델은 request.user를 통해 접근 가능
@@ -55,8 +70,8 @@ def dashboard_view(request):
         my_acc__in=user_accounts, 
         # 옛날 코드: txn_date__range=[start_date, end_date]
         # range 대신 gte와 lt를 조합하여 날짜 범위 필터링
-        txn_date__gte=start_date,
-        txn_date__lt=end_date_inclusive
+        txn_date__gte=start_datetime, # 수정
+        txn_date__lt=end_datetime, # 수정
     ).select_related('txn_cat')
     
     # 각 집계 및 조회 쿼리를 새로운 모델에 맞게 수정
@@ -112,8 +127,8 @@ def dashboard_view(request):
         'total_income': total_income,
         'total_expense': total_expense,
         'net_balance': net_balance,
-        'start_date': start_date.isoformat(),
-        'end_date': end_date.isoformat(),
+        'start_date': start_datetime.date().isoformat(),  # HTML 템플릿에 사용할 때는 date 형식으로 변환하여 전달
+        'end_date': (end_datetime - timedelta(days=1)).date().isoformat(), # HTML 템플릿에 사용할 때는 1일 빼고 전달
         # 'transactions': json.dumps(list(recent_transactions.values()), cls=CustomJSONEncoder),
         # 'recent_income_transactions': json.dumps(recent_income_transactions, cls=CustomJSONEncoder),
         # 'recent_expense_transactions': json.dumps(recent_expense_transactions, cls=CustomJSONEncoder),

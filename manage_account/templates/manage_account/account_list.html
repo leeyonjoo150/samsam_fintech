@@ -1,0 +1,50 @@
+{% extends 'common/base.html' %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'manage_account/css/manacc.css' %}">
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-4">
+            <!-- 총 자산 섹션 -->
+            <div class="p-3 bg-light rounded-3 shadow-sm mb-5">
+                <h4 class="fw-bold">총 자산</h4>
+                <p class="fs-4">{{ total_assets|intcomma }}원</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 계좌 목록 섹션 -->
+    <h3 class="mb-4 account-list-heading">계좌 목록</h3>
+    <div class="list-group shadow-sm">
+        {% if accounts %}
+            {% for acc in accounts %}
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center clickable-row"
+                    style="cursor: pointer;" 
+                 onclick="location.href='{% url 'manage_account:account_detail' acc.pk %}'">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-bank2 fs-2 me-3 text-primary"></i>
+                        <div>
+                            <h5 class="mb-1 fw-bold">{{ acc.get_acc_bank_display }}</h5>
+                            <p class="mb-1"><strong>계좌번호:</strong> {{ acc.acc_num }}</p>
+                            <small><strong>예금주:</strong> {{ acc.acc_user_name.user_name }}</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="fs-4 fw-bold text-dark me-3">{{ acc.latest_balance|default_if_none:0|intcomma }}원</span>
+                        <a href="#" class="btn pretty-button-small" onclick="event.stopPropagation();">송금</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="list-group-item text-center p-5">
+                <p class="mb-4 fs-5">계좌가 없습니다.</p>
+                <a href="{% url 'manage_account:account_create' %}" class="btn pretty-button">계좌 추가하기</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

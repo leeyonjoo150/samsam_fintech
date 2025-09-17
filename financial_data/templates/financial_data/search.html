@@ -1,0 +1,121 @@
+{% extends 'common/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h1>금융 데이터 검색</h1>
+    <p class="lead">주요 지표, 환율, 주식 등을 검색할 수 있습니다.</p>
+</div>
+<div class="col-md-2 d-flex justify-content-end align-items-center">
+    <a href="{% url 'financial_data:refresh_stock_cache' %}" class="btn btn-secondary btn-sm">데이터 갱신</a>
+</div>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10">
+            <div class="row row-cols-1 row-cols-md-5 g-4 text-center">
+                {% for data in market_data %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">{{ data.name }}</h5>
+                            <p class="card-text fs-4 fw-bold text-primary">{{ data.price }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Select2 CSS -->
+            <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+
+            <form method="get" class="mb-5 mt-5">
+                {% csrf_token %}
+                <div class="d-flex justify-content-center flex-wrap" style="gap: 10px;">
+                    <div class="input-group" style="flex: 1;">
+                        <!-- 기존 form.query 대신 select 사용 -->
+                        <select name="query" id="id_query" class="form-control" style="width: 100%;">
+                            <option value="{{ request.GET.query|default:'' }}">
+                                {% if request.GET.query %}{{ request.GET.query }}{% endif %}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="width: 200px;">
+                        {{ form.start_date }}
+                    </div>
+                    <div class="input-group" style="width: 200px;">
+                        {{ form.end_date }}
+                    </div>
+                    <div class="d-flex justify-content-between" style="flex-grow: 0;">
+                        <button type="submit" class="pretty-button">검색</button>
+                    </div>
+                </div>
+            </form>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if query and results %}
+                <h2 class="mt-5 mb-3">검색 결과: {{ query }} </h2>
+                <div class="table-responsive">
+                    {{ results|safe }}
+                </div>
+            {% elif query %}
+                <div class="alert alert-warning text-center" role="alert">
+                    "{{ query }}"에 대한 검색 결과를 찾을 수 없습니다.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .table td, .table th {
+        text-align: center !important;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-results__message {
+        display: none !important;
+    }
+</style>
+
+<!-- jQuery와 Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#id_query').select2({
+        ajax: {
+            url: "{% url 'financial_data:search_stock_ticker' %}",
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                return { results: data.results };
+            },
+            cache: true
+        },
+        minimumInputLength: 1,
+        placeholder: '회사명 또는 종목 코드를 검색하세요',
+        allowClear: true,
+        tags: true,
+        tokenSeparators: [',', ' '],
+        language: {
+            searching: function () {
+                return '';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
