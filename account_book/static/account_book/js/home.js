@@ -100,76 +100,102 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // =================================================
-    // AJAX Search
-    // =================================================
-    async function performSearch(startDate, endDate, type) {
-        const queryParams = new URLSearchParams();
-        if (startDate) queryParams.append("start_date", startDate);
-        if (endDate) queryParams.append("end_date", endDate);
-        if (type) queryParams.append("type", type);
-        queryParams.set("year", currentYear);
-        queryParams.set("month", currentMonth);
+// ✅ 거래 내역 테이블 렌더링 함수
+function renderTransactions(transactions) {
+    console.log("렌더링 시작:", transactions);
+    const recordList = document.getElementById("record-list");
+    recordList.innerHTML = "";
 
-        try {
-            const response = await fetch(`/accbook/search_transactions/?${queryParams.toString()}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            renderTransactions(data.transactions);
-        } catch (error) {
-            console.error("Error performing search:", error);
-            alert("검색 중 오류가 발생했습니다.");
-        }
+    if (!transactions || transactions.length === 0) {
+        recordList.innerHTML = '<tr><td colspan="8" style="text-align: center;">데이터가 없습니다.</td></tr>';
+        return;
     }
 
+    transactions.forEach(transaction => {
+        console.log("행 추가:", transaction);
+        const row = document.createElement("tr");
+        row.setAttribute("data-id", transaction.id);
+
+        row.innerHTML = `
+            <td><input type="checkbox" data-id="${transaction.id}"></td>
+            <td>${transaction.use_date}</td>
+            <td>${transaction.cash_side}</td>
+            <td>${transaction.asset_type}</td>
+            <td>${transaction.category_name || ""}</td>
+            <td>${transaction.cash_amount ? transaction.cash_amount.toLocaleString() : 0}</td>
+            <td>${transaction.cash_cont || ""}</td>
+            <td>
+                ${transaction.memo || ""}
+                ${transaction.photo_url ? `<a href="${transaction.photo_url}" target="_blank">📷</a>` : ""}
+            </td>
+        `;
+
+        recordList.appendChild(row);
+    });
+
+    // ✅ 새로 렌더링된 체크박스에 다시 바인딩
+    bindMasterCheckbox();
+}
+
+
+// =================================================
+// AJAX Search & Default Load
+// =================================================
+
+// ✅ 검색 실행 함수
+async function performSearch(startDate, endDate, type) {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.append("start_date", startDate);
+    if (endDate) queryParams.append("end_date", endDate);
+    if (type) queryParams.append("type", type);
+
+    try {
+        const response = await fetch(`/accbook/search_transactions/?${queryParams.toString()}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        renderTransactions(data.transactions);
+    } catch (error) {
+        console.error("Error performing search:", error);
+        alert("검색 중 오류가 발생했습니다.");
+    }
+}
+
+   // ✅ 기본 로드 함수 (홈: 한 달치)
     async function loadDefaultTransactions() {
-        try {
-            const response = await fetch(`/accbook/search_transactions/`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            renderTransactions(data.transactions);
-        } catch (error) {
-            console.error("Error loading default transactions:", error);
-            alert("거래 내역을 불러오는 중 오류가 발생했습니다.");
-        }
+    try {
+        const year = document.querySelector("#date-navigation-area").dataset.year;
+        const month = document.querySelector("#date-navigation-area").dataset.month;
+
+        // 👉 검색 API 재활용
+        const response = await fetch(`/accbook/search_transactions/?year=${year}&month=${month}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        renderTransactions(data.transactions);
+    } catch (error) {
+        console.error("Error loading default transactions:", error);
+        alert("거래 내역을 불러오는 중 오류가 발생했습니다.");
+    }
+}
+
+    // ✅ 검색
+    async function searchTransactions() {
+        const queryParams = new URLSearchParams();
+
+        const startDate = document.getElementById("search-start-date-input").value;
+        const endDate = document.getElementById("search-end-date-input").value;
+
+        if (startDate) queryParams.set("start_date", startDate);
+        if (endDate) queryParams.set("end_date", endDate);
+
+        const response = await fetch(`/accbook/search_transactions/?${queryParams.toString()}`);
+        const data = await response.json();
+        renderTransactions(data.transactions); // 👉 표만 교체
     }
 
-    function renderTransactions(transactions) {
-        const recordList = document.getElementById("record-list");
-        recordList.innerHTML = "";
-
-        if (transactions.length === 0) {
-            recordList.innerHTML = '<tr><td colspan="8" style="text-align: center;">검색 결과가 없습니다.</td></tr>';
-            return;
-        }
-
-        transactions.forEach(transaction => {
-            const row = document.createElement("tr");
-            row.setAttribute("data-id", transaction.id);
-            row.innerHTML = `
-                <td><input type="checkbox" data-id="${transaction.id}"></td>
-                <td>${transaction.use_date}</td>
-                <td>${transaction.cash_side}</td>
-                <td>${transaction.asset_type}</td>
-                <td>${transaction.category_name || ""}</td>
-                <td>${transaction.cash_amount.toLocaleString()}</td>
-                <td>${transaction.cash_cont}</td>
-                <td>
-                    ${transaction.memo || ""}
-                    ${transaction.photo_url ? `<a href="${transaction.photo_url}" target="_blank">📷</a>` : ""}
-                </td>
-            `;
-            recordList.appendChild(row);
-        });
-
-        bindMasterCheckbox();
-        updateAlertBar();
-    }
-
-    // 초기 로드
-    console.log("home.js: Initializing...");
-    loadDefaultTransactions();
-});
+    // ✅ 이벤트 바인딩
+        loadDefaultTransactions();
+        document.getElementById("execute-search-btn").addEventListener("click", searchTransactions);
+    });
 
 // =================================================
 // Helper Functions
@@ -261,3 +287,4 @@ function deleteSelectedRecords() {
         alert("서버와 통신 중 문제가 발생했습니다.");
     });
 }
+

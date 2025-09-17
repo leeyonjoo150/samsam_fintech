@@ -70,12 +70,15 @@
         <!-- 날짜 -->
         <div class="main-content">
             <div class="content-header">
-                <div class="date-navigation" id="date-navigation-area">
+                <div class="date-navigation" id="date-navigation-area"
+                    data-year="{{ current_year }}"
+                    data-month="{{ current_month }}">
                     <button class="date-navigation-button" onclick="changeDate(-1)">&lt;</button>
-                                <span id="current-month-display" class="date-display"></span>
+                    <span id="current-month-display" class="date-display"></span>
                     <button class="date-navigation-button" onclick="changeDate(1)">&gt;</button>
                 </div>
-                
+
+
                 {% block extra_js %}
                 <script>
                     let currentYear = new Date().getFullYear();
@@ -121,17 +124,21 @@
                     <button id="execute-search-btn" class="search-action-btn">검색</button>
                 </div>
             </div>
+            <div class="header-right-icons">
+                <span class="material-icons search-icon" id="toggle-search-btn">search</span>
 
-                <div class="header-right-icons">
-                    <span class="material-icons search-icon" id="toggle-search-btn">search</span>
+                <!-- ✅ 엑셀 다운로드 아이콘 -->
+                <a href="{% url 'account_book:export_transactions_excel' %}?year={{ current_year }}&month={{ current_month }}">
                     <svg xmlns="http://www.w3.org/2000/svg" 
                         width="24" height="24" 
                         viewBox="0 0 24 24" 
                         class="excel-icon">
                         <rect width="24" height="24" fill="#21A366" rx="4"/>
                         <path d="M7 7h3v2H7v6h3v2H7v2H5V5h2v2zM11 9h2v6h-2zM15 9h2v6h-2z" fill="white"/>
-                    </svg>      
-                </div>
+                    </svg>
+                </a>
+            </div>
+
             </div>
             <!-- 검색 결과 -->
             <div class="search-results-container">
@@ -197,25 +204,7 @@
                     </tr>
                 </thead>
                 <tbody id="record-list">
-                    {% for transaction in transactions %}
-                    <tr data-id="{{ transaction.id }}">
-                        <td><input type="checkbox" data-id="{{ transaction.id }}"></td>
-                        <td>{{ transaction.date|date:"Y-m-d" }}</td>
-                        <td>{{ transaction.side }}</td>
-                        <td>{{ transaction.asset_type }}</td> {# Now uses 'asset_type' from dictionary #}
-                        <td>{{ transaction.category|default:"" }}</td>
-                        <td>${{ transaction.amount|intcomma }}</td>
-                        <td>{{ transaction.content }}</td>
-                        <td>
-                            {{ transaction.memo|default:"" }}
-                            {% if transaction.photo_url %}
-                                <a href="{{ transaction.photo_url }}" target="_blank" title="사진 보기">📷</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <!-- 데이터가 없을 때 -->
-                    {% endfor %}
+                    <!-- JS에서 채워줌 -->
                 </tbody>
             </table>
         </div>
@@ -674,3 +663,27 @@
     <script src="{% static 'account_book/js/panel.js' %}"></script>
     <script src="{% static 'account_book/js/downpanel.js' %}"></script>
     <script src="{% static 'account_book/js/home.js' %}"></script>
+    <script>
+    function changeDate(offset) {
+        let dateNav = document.getElementById("date-navigation-area");
+        let year = parseInt(dateNav.dataset.year);
+        let month = parseInt(dateNav.dataset.month);
+
+        month += offset;
+        if (month < 1) {
+            month = 12;
+            year--;
+        } else if (month > 12) {
+            month = 1;
+            year++;
+        }
+
+        dateNav.dataset.year = year;
+        dateNav.dataset.month = month;
+
+        document.getElementById("current-month-display").innerText =
+            `${year}.${month < 10 ? "0" + month : month}.`;
+
+        loadTransactions(year, month);
+        }
+    </script>
