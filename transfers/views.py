@@ -131,6 +131,15 @@ def verify_account_password(request):
             'description': description,
         }
 
+        # 송금 계좌와 받는 계좌가 동일한지 확인
+        if from_account_num == to_account_num:
+            context = {
+                'error_message': '송금 계좌와 받는 계좌는 동일할 수 없습니다.',
+                'transfer_data': transfer_data,
+                'attempted_at': timezone.now(),
+            }
+            return render(request, 'transfers/transfer_error.html', context)
+
         # If account_password is not present, it means this is the initial POST from transfer_form.
         # In this case, we should just render the password verification form.
         if not account_password:

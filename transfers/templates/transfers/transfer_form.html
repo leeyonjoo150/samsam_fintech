@@ -102,6 +102,12 @@ function validateAndSubmit() {
         return;
     }
 
+    // 송금 계좌와 받는 계좌가 동일한지 확인
+    if (fromAccount === toAccount) {
+        alert('송금 계좌와 받는 계좌는 동일할 수 없습니다.');
+        return;
+    }
+
     // AJAX로 계좌 정보 확인
     const formData = new FormData();
     formData.append('account_num', toAccount);
