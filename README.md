@@ -38,8 +38,8 @@
 *   **프론트엔드:** HTML, CSS, JavaScript, Bootstrap
 *   **차트 라이브러리:** Chart.js
 *   **지도 서비스:** Google Maps API
-*   **금융 데이터 API:** 증권 시세 API
-*   **보고서 생성:** ReportLab
+*   **금융 데이터 API:** FinanceDataReader
+*   **보고서 생성:** ReportLab, openpyxl
 
 ## 설치 및 실행 방법
 
