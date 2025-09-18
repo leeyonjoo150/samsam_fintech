@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from dashboard.models import Transaction
 from manage_account.models import Account, AccountBookCategory, TransactionAccount, TransactionCash
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_POST
@@ -335,17 +336,19 @@ def search_transactions(request):
     category_id = request.GET.get('category')
     amount_str = request.GET.get('amount')
 
+    year = request.GET.get('year')
+    month = request.GET.get('month')
+
     filters = Q()
 
-    if start_date_str:
+    if start_date_str and end_date_str:
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        start_date = timezone.make_aware(start_date)  # ✅ 한국시간 기준 aware datetime
-        filters &= Q(use_date__gte=start_date)
-
-    if end_date_str:
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
-        end_date = timezone.make_aware(end_date)  # ✅ 한국시간 기준 aware datetime
-        filters &= Q(use_date__lt=end_date)
+        start_date = timezone.make_aware(start_date)
+        end_date = timezone.make_aware(end_date)
+        filters &= Q(use_date__gte=start_date, use_date__lt=end_date)
+    elif year and month:
+        filters &= Q(use_date__year=year, use_date__month=month)
 
     if transaction_type == 'income':
         filters &= Q(cash_side='수입')

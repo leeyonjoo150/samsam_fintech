@@ -48,8 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const executeSearchBtn = document.getElementById("execute-search-btn");
 
     let selectedSearchType = null; 
-    let currentYear = new Date().getFullYear();
-    let currentMonth = new Date().getMonth() + 1;
+    // Initialize currentYear and currentMonth from URL parameters or current date
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentYear = parseInt(urlParams.get('year')) || new Date().getFullYear();
+    let currentMonth = parseInt(urlParams.get('month')) || new Date().getMonth() + 1;
 
     function toggleSearchForm() {
         if (dateNavigationArea.style.display !== "none") {
@@ -123,8 +125,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadDefaultTransactions() {
+        const queryParams = new URLSearchParams();
+        queryParams.append("year", currentYear);
+        queryParams.append("month", currentMonth);
+
         try {
-            const response = await fetch(`/accbook/search_transactions/`);
+            const response = await fetch(`/accbook/search_transactions/?${queryParams.toString()}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             renderTransactions(data.transactions);
